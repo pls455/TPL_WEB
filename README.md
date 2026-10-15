@@ -5,11 +5,11 @@ Arabic-first administration panel for **Tawjihi Palestine Library**.
 ## Current features
 - Firebase Email/Password sign-in with role validation.
 - Live Firestore management for branches and subjects: add, edit, sort, activate/deactivate, and assign subjects to multiple branches.
-- External resource management: add/edit links, assign each resource to a subject, submit for review, publish, and archive. Reviewer controls are role-gated separately from branch/subject administration.
-- Curriculum-unit management: create/edit units, assign them to active subjects, order them, and activate/deactivate without deleting records.
-- Assessment administration: create/edit practice tests, timed tests, and past-paper entries; validate duration; publish/unpublish the test definition.
-- Question bank: create/edit multiple-choice, true/false, and short-answer questions; validate options and correct answers; assign points and optional explanations; deactivate instead of deleting.
-- Super-admin-only team management: assign the approved role set to existing Firebase Authentication UIDs and activate/deactivate access.
+- Resource management: upload PDF, images, Office documents, presentations, spreadsheets, audio, video, or compressed files up to 50 MB; external links are supported too. Uploaded files use Firebase Storage; resources remain pending review until published.
+- Curriculum-unit management: create/edit units, assign them to active subjects, order them, and delete only when no resources refer to the unit.
+- Assessment administration: create/edit practice tests, timed tests, and past-paper entries; validate duration; publish/unpublish and delete tests with their questions. Publishing creates a safe `studentQuestions` projection that omits answer keys and explanations.
+- Question bank: create/edit multiple-choice, true/false, and short-answer questions; validate options and correct answers; assign points and optional explanations; delete questions when requested.
+- Super-admin-only team management: assign the approved role set to existing Firebase Authentication UIDs and remove TPL permissions by deleting the team record (the Firebase Auth account itself is not deleted).
 - Role-gated report moderation for support, content managers, reviewers, and the super admin; resolve or dismiss reports without deleting their records.
 - Live Firestore listeners update manager lists when cloud records change.
 - Section-based admin navigation separates overview, branches/subjects, resources, curriculum/tests, and team/reports instead of stacking every tool on one page.
@@ -43,3 +43,12 @@ Arabic-first administration panel for **Tawjihi Palestine Library**.
 `super_admin`, `content_manager`, `academic_reviewer`, `sponsored_ads_manager`, `content_contributor`, `technical_support`.
 
 Footer signature: **MADE BY Karam_Dev**
+
+
+## Publish Firebase rules
+The repository contains `firestore.rules` and `storage.rules`, but GitHub Pages does not deploy Firebase rules automatically. Publish both files through Firebase Console before testing the new features:
+1. In Firebase Console, open **Firestore Database → Rules**, replace the rules with `firestore.rules`, and publish.
+2. Open **Storage → Rules**, replace the rules with `storage.rules`, and publish.
+3. Verify uploads as a signed-in content manager, then approve a resource and confirm students can open the file only after publication.
+
+Student-facing assessment questions are copied to `studentQuestions` without `correctAnswer` or `explanation`. The student app can display and collect choices locally, but trusted automatic grading and saving attempts are not implemented in this build.
