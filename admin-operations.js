@@ -1,7 +1,7 @@
 import { getApp, getApps, initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, collection, setDoc, updateDoc,
+  getFirestore, doc, getDoc, collection, setDoc, updateDoc, deleteDoc,
   onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
@@ -114,7 +114,7 @@ function renderTeam() {
     const actions = [];
     if (!isRoot) {
       actions.push(makeButton("تعديل", () => editTeamMember(member)));
-      actions.push(makeButton(member.active ? "تعطيل" : "تفعيل", () => toggleTeamMember(member), member.active));
+      actions.push(makeButton("حذف من الفريق", () => deleteTeamMember(member), true));
     }
     list.appendChild(makeRow(
       member.displayName || member.email || member.id,
@@ -134,7 +134,6 @@ function editTeamMember(member) {
   $("team-name").value = member.displayName;
   $("team-email").value = member.email;
   $("team-role").value = member.role in roleNames && member.role !== "super_admin" ? member.role : "content_manager";
-  $("team-active").checked = member.active;
   $("team-submit").textContent = "حفظ الصلاحيات";
   $("team-cancel").hidden = false;
   $("team-name").focus();
@@ -144,23 +143,19 @@ function resetTeamForm() {
   $("team-form").reset();
   $("team-edit-uid").value = "";
   $("team-uid").disabled = false;
-  $("team-active").checked = true;
   $("team-role").value = "content_manager";
   $("team-submit").textContent = "إضافة عضو";
   $("team-cancel").hidden = true;
 }
-async function toggleTeamMember(member) {
+async function deleteTeamMember(member) {
   if (!canManageTeam() || member.id === SUPER_ADMIN_UID) return;
+  if (!confirm(`حذف «${member.displayName || member.email || member.id}» من فريق الإدارة؟ سيبقى حساب Firebase Authentication موجودًا دون صلاحيات TPL.`)) return;
   try {
-    await updateDoc(doc(db, "adminUsers", member.id), {
-      active: !member.active,
-      updatedAt: serverTimestamp(),
-      updatedBy: currentUser.uid
-    });
-    operationsMessage(member.active ? "تم تعطيل حساب الإدارة. سيُرفض دخوله عند التحقق من الصلاحيات." : "تم تفعيل حساب الإدارة.");
+    await deleteDoc(doc(db, "adminUsers", member.id));
+    operationsMessage("تم حذف صلاحيات العضو من TPL. لم يتم حذف حساب تسجيل الدخول نفسه.");
   } catch (error) {
-    console.error("Admin member status update failed:", error);
-    operationsMessage("تعذّر تغيير حالة العضو. تحقق من قواعد Firestore.", true);
+    console.error("Admin member delete failed:", error);
+    operationsMessage("تعذّر حذف صلاحيات العضو. تحقق من قواعد Firestore.", true);
   }
 }
 $("team-form").addEventListener("submit", async (event) => {
@@ -171,7 +166,7 @@ $("team-form").addEventListener("submit", async (event) => {
   const displayName = $("team-name").value.trim();
   const email = $("team-email").value.trim();
   const role = $("team-role").value;
-  const active = $("team-active").checked;
+  const active = editingId ? (teamMembers.find((member) => member.id === editingId)?.active === true) : true;
   if (!uid || uid === SUPER_ADMIN_UID || role === "super_admin") {
     operationsMessage("أدخل UID لحساب آخر. حساب المدير العام الأساسي لا يُدار من هذا النموذج.", true);
     return;
@@ -192,7 +187,7 @@ $("team-form").addEventListener("submit", async (event) => {
         displayName, email, role, active,
         updatedAt: serverTimestamp(), updatedBy: currentUser.uid
       });
-      operationsMessage("تم تحديث دور عضو الفريق وحالته.");
+      operationsMessage("تم تحديث دور عضو الفريق.");
     } else {
       await setDoc(doc(db, "adminUsers", uid), {
         displayName, email, role, active,
