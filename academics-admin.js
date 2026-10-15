@@ -204,6 +204,18 @@ function startListeners() {
       }).filter((item) => item.title.trim()).sort((a, b) => a.title.localeCompare(b.title, "ar"));
       renderTests();
       renderTestSelect();
+      // Backfill the safe student-facing projection for tests published before this flow existed.
+      tests.filter((test) => test.published && test.active).forEach((test) => {
+        syncStudentQuestions(test.id, true).then((questionCount) => {
+          if (questionCount === 0) {
+            return updateDoc(doc(db, "tests", test.id), { published: false, updatedAt: serverTimestamp() });
+          }
+          return null;
+        }).catch((syncError) => {
+          console.error("Student question projection sync failed:", syncError);
+          message("تعذّر تجهيز نسخة أسئلة الطالب. انشر قواعد Firestore الجديدة ثم أعد فتح لوحة الإدارة.", true);
+        });
+      });
     }, (error) => {
       console.error("Test listener failed:", error);
       message("تعذّرت قراءة الاختبارات. تحقق من صلاحيات المراجع الأكاديمي وقواعد Firestore.", true);
@@ -391,6 +403,7 @@ async function syncStudentQuestions(testId, published) {
     if (!keepIds.has(item.id)) tasks.push(deleteDoc(doc(db, "studentQuestions", item.id)));
   });
   await Promise.all(tasks);
+  return keepIds.size;
 }
 
 async function toggleTestPublished(test) {
