@@ -12,7 +12,9 @@ Arabic-first administration panel for **Tawjihi Palestine Library**.
 - Super-admin-only team management: assign the approved role set to existing Firebase Authentication UIDs and activate/deactivate access.
 - Role-gated report moderation for support, content managers, reviewers, and the super admin; resolve or dismiss reports without deleting their records.
 - Live Firestore listeners update manager lists when cloud records change.
-- Overview counters and responsive RTL layout using TPL forest, ivory, and muted-gold colors.
+- Section-based admin navigation separates overview, branches/subjects, resources, curriculum/tests, and team/reports instead of stacking every tool on one page.
+- Creation forms stay collapsed until requested and reopen automatically when editing an existing record.
+- Responsive RTL layout with subtle section transitions and reduced-motion support, using TPL forest, ivory, and muted-gold colors.
 
 ## Firestore collections used
 - `branches`: `name`, `active`, `order`, `createdBy`, `createdAt`, `updatedAt`
