@@ -18,6 +18,15 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const $ = (id) => document.getElementById(id);
+function openFormDisclosure(formId) {
+  const disclosure = $(formId)?.closest("details.form-disclosure");
+  if (disclosure) disclosure.open = true;
+}
+function closeFormDisclosure(formId) {
+  const disclosure = $(formId)?.closest("details.form-disclosure");
+  if (disclosure) disclosure.open = false;
+}
+
 
 let currentUser = null;
 let currentRole = null;
@@ -238,6 +247,7 @@ function renderUnits() {
   });
 }
 function editUnit(unit) {
+  openFormDisclosure("unit-form");
   $("unit-edit-id").value = unit.id;
   $("unit-name").value = unit.name;
   fillSubjectSelect("unit-subject", unit.subjectId);
@@ -248,6 +258,7 @@ function editUnit(unit) {
   $("unit-name").focus();
 }
 function resetUnitForm() {
+  closeFormDisclosure("unit-form");
   $("unit-form").reset();
   $("unit-edit-id").value = "";
   $("unit-order").value = String(units.length + 1);
@@ -327,6 +338,7 @@ function renderTests() {
   });
 }
 function editTest(test) {
+  openFormDisclosure("test-form");
   $("test-edit-id").value = test.id;
   $("test-title").value = test.title;
   fillSubjectSelect("test-subject", test.subjectId);
@@ -338,6 +350,7 @@ function editTest(test) {
   $("test-title").focus();
 }
 function resetTestForm() {
+  closeFormDisclosure("test-form");
   $("test-form").reset();
   $("test-edit-id").value = "";
   $("test-duration").value = "0";
@@ -439,6 +452,7 @@ function renderQuestions() {
   });
 }
 function editQuestion(question) {
+  openFormDisclosure("question-form");
   $("question-edit-id").value = question.id;
   renderTestSelect(question.testId);
   $("question-test").value = question.testId;
@@ -453,6 +467,7 @@ function editQuestion(question) {
   updateQuestionTypeFields();
 }
 function resetQuestionForm() {
+  closeFormDisclosure("question-form");
   $("question-form").reset();
   $("question-edit-id").value = "";
   $("question-points").value = "1";
