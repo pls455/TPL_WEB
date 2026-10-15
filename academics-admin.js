@@ -575,7 +575,7 @@ onAuthStateChanged(auth, async (user) => {
       }
       currentRole = roleSnap.data().role || null;
     }
-    $("catalog-management").hidden = !canSeeCatalog();
+    $("catalog-management").hidden = !canSeeCatalog() || $("dashboard-view").dataset.activePage !== "curriculum";
     $("unit-admin").hidden = !canManageUnits();
     $("test-admin").hidden = !canManageAssessments();
     $("question-admin").hidden = !canManageAssessments();
