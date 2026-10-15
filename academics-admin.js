@@ -547,8 +547,16 @@ async function deleteQuestion(question) {
       deleteDoc(doc(db, "studentQuestions", question.id))
     ]);
     const test = tests.find((item) => item.id === question.testId);
-    if (test?.published) await syncStudentQuestions(test.id, true);
-    message("تم حذف السؤال نهائيًا.");
+    if (test?.published) {
+      const remaining = questions.filter((item) => item.testId === test.id && item.active && item.id !== question.id);
+      const stillPublished = remaining.length > 0;
+      if (!stillPublished) await updateDoc(doc(db, "tests", test.id), { published: false, updatedAt: serverTimestamp() });
+      await syncStudentQuestions(test.id, stillPublished);
+      if (!stillPublished) message("تم حذف آخر سؤال، لذلك أُخفي الاختبار عن الطلاب حتى تضيف أسئلة جديدة.");
+      else message("تم حذف السؤال نهائيًا.");
+    } else {
+      message("تم حذف السؤال نهائيًا.");
+    }
   } catch (error) {
     console.error("Question delete failed:", error);
     message("تعذّر حذف السؤال. تحقق من قواعد Firestore.", true);
