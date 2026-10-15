@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173F35">
+  <title>TPL | لوحة الإدارة</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./"><span class="brand-mark">TPL</span><span><strong>لوحة الإدارة</strong><small>Tawjihi Palestine Library</small></span></a>
+    <div id="account-actions" class="account-actions" hidden><span id="user-email"></span><button id="sign-out" class="button button-quiet">تسجيل الخروج</button></div>
+  </header>
+  <main class="page">
+    <section id="login-view" class="login-layout">
+      <div class="intro">
+        <p class="eyebrow">إدارة المحتوى التعليمي</p>
+        <h1>كل موارد TPL<br>في مكان واحد.</h1>
+        <p class="intro-copy">إدارة المواد والملفات والمراجعات الأكاديمية من لوحة واحدة. الوصول متاح للحسابات المخوّلة فقط.</p>
+        <div class="intro-note"><span class="dot"></span> لا يتم منح الصلاحيات من الواجهة؛ تُطبّق عبر قواعد قاعدة البيانات.</div>
+      </div>
+      <form id="login-form" class="panel login-card">
+        <div class="panel-heading"><h2>تسجيل الدخول</h2><p>استخدم حساب الإدارة المسجّل مسبقًا.</p></div>
+        <label for="email">البريد الإلكتروني</label>
+        <input id="email" name="email" type="email" autocomplete="username" placeholder="admin@example.com" required>
+        <label for="password">كلمة المرور</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
+        <button id="login-button" class="button button-primary" type="submit">دخول إلى اللوحة</button>
+        <p id="login-message" class="message" role="status"></p>
+        <p class="small-note">لا يوجد تسجيل إداري ذاتي من هذه الصفحة.</p>
+      </form>
+    </section>
+
+    <section id="dashboard-view" hidden>
+      <div class="welcome-row"><div><p class="eyebrow">مساحة العمل</p><h1>نظرة عامة</h1><p class="muted">هذه لوحة تأسيسية. البيانات تظهر من Firestore عند ضبط الصلاحيات والمجموعات.</p></div><span id="role-pill" class="role-pill">جارٍ التحقق</span></div>
+      <div id="status-banner" class="status-banner">جارٍ تحميل بيانات الحساب...</div>
+      <div class="stats-grid">
+        <article class="stat-card"><span class="stat-icon">▤</span><p>الموارد المنشورة</p><strong id="published-count">—</strong><small>من Firestore</small></article>
+        <article class="stat-card"><span class="stat-icon">◷</span><p>بانتظار المراجعة</p><strong id="pending-count">—</strong><small>للمراجعين المخوّلين</small></article>
+        <article class="stat-card"><span class="stat-icon">↗</span><p>بلاغات مفتوحة</p><strong id="reports-count">—</strong><small>إذا كانت المجموعة متاحة</small></article>
+      </div>
+      <section class="panel resource-panel">
+        <div class="panel-heading heading-inline"><div><h2>أحدث الموارد</h2><p>لا يمكن نشر مورد قبل اعتماده حسب سير العمل.</p></div><button id="refresh-button" class="button button-outline">تحديث</button></div>
+        <div class="table-wrap"><table><thead><tr><th>العنوان</th><th>المادة</th><th>النوع</th><th>الحالة</th></tr></thead><tbody id="resources-body"><tr><td colspan="4" class="empty-state">جارٍ التحميل...</td></tr></tbody></table></div>
+      </section>
+      <p class="footer-note">MADE BY Karam_Dev · TPL</p>
+    </section>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
