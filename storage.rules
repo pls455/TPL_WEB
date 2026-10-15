@@ -6,6 +6,7 @@ service firebase.storage {
     }
     function adminRecord() {
       return signedIn()
+        && firestore.exists(/databases/(default)/documents/adminUsers/$(request.auth.uid))
         && firestore.get(/databases/(default)/documents/adminUsers/$(request.auth.uid)).data.active == true;
     }
     function canManageUploads() {
