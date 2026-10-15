@@ -4,3 +4,17 @@
 
 
 .manager-form select,.manager-form textarea{display:block;width:100%;padding:11px;border:1px solid #dcded7;border-radius:11px;font:inherit;font-size:13px;background:#fff;color:var(--ink);outline:none}.manager-form textarea{resize:vertical;min-height:72px;line-height:1.7}.manager-form select:focus,.manager-form textarea:focus{border-color:var(--forest);box-shadow:0 0 0 3px rgba(23,63,53,.09)}.resource-manager-section{margin-top:18px}.resource-manager-section .muted{margin:0 0 12px}.resource-manager-section .manager-form{max-width:760px}.resource-manager-section .manager-form .button-primary{width:auto}
+
+
+/* Curriculum, assessment and question administration */
+[hidden]{display:none!important}
+#catalog-management{margin:20px 0}
+#catalog-management>.panel-heading{margin-bottom:18px}
+#catalog-management .manager-section{margin-bottom:16px}
+#catalog-management .assessment-grid{align-items:start}
+#catalog-management .assessment-grid>.manager-section{height:100%}
+#catalog-management .manager-form .button-primary{width:auto}
+#catalog-management .manager-row-title{line-height:1.7}
+#catalog-management .manager-row-meta{line-height:1.8}
+#catalog-management .manager-form textarea{white-space:pre-wrap}
+@media(max-width:850px){#catalog-management .assessment-grid{grid-template-columns:1fr}}
