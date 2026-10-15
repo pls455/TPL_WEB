@@ -6,7 +6,6 @@ service firebase.storage {
     }
     function adminRecord() {
       return signedIn()
-        && firestore.exists(/databases/(default)/documents/adminUsers/$(request.auth.uid))
         && firestore.get(/databases/(default)/documents/adminUsers/$(request.auth.uid)).data.active == true;
     }
     function canManageUploads() {
@@ -18,8 +17,7 @@ service firebase.storage {
       );
     }
     function publishedResource(resourceId) {
-      return firestore.exists(/databases/(default)/documents/resources/$(resourceId))
-        && firestore.get(/databases/(default)/documents/resources/$(resourceId)).data.status == 'published';
+      return firestore.get(/databases/(default)/documents/resources/$(resourceId)).data.status == 'published';
     }
 
     match /resources/{resourceId}/{fileName} {
@@ -28,7 +26,7 @@ service firebase.storage {
         request.resource == null ||
         (request.resource.size <= 50 * 1024 * 1024
           && request.resource.contentType.matches(
-            'application/pdf|image/.*|video/.*|audio/.*|application/msword|application/vnd.openxmlformats-officedocument.*|application/vnd.ms-powerpoint|application/vnd.ms-excel|application/zip|application/x-zip-compressed|application/x-rar-compressed|application/octet-stream'
+            'application/pdf|image/.*|video/.*|audio/.*|application/msword|application/vnd.openxmlformats-officedocument.*|application/vnd.ms-powerpoint|application/vnd.ms-excel|application/zip|application/x-zip-compressed|application/x-rar-compressed|application/vnd.rar|application/octet-stream'
           ))
       );
     }
