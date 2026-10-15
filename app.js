@@ -1,4 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+import { getApp, getApps, initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, collection, query, where, orderBy, limit, getDocs, addDoc, updateDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
@@ -13,7 +13,7 @@ const firebaseConfig = {
   appId: "1:61246778282:web:3f55d12d32281ebf3659d3"
 };
 const SUPER_ADMIN_UID = "ZbkBsAAjdccepK8mrmf3jfgrqdR2";
-const app = initializeApp(firebaseConfig);
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const $ = (id) => document.getElementById(id);
@@ -55,12 +55,17 @@ function showLogin() {
 function showDashboard(user, role) {
   currentUser = user;
   currentRole = role;
-  $("management-panel").hidden = !canManageTaxonomy();
+  $("management-panel").hidden = !canAccessResourceManagement();
+  const taxonomyControls = $("taxonomy-controls");
+  if (taxonomyControls) taxonomyControls.hidden = !canManageTaxonomy();
+  const managementHeading = $("management-panel").querySelector(".panel-heading");
+  if (managementHeading) managementHeading.hidden = !canManageTaxonomy();
   loginView.hidden = true;
   dashboardView.hidden = false;
   $("account-actions").hidden = false;
   $("user-email").textContent = user.email || "حساب الإدارة";
   $("role-pill").textContent = roleNames[role] || role;
+  resetResourceForm();
 }
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -92,7 +97,7 @@ onAuthStateChanged(auth, async (user) => {
     }
     showDashboard(user, role);
     await loadDashboard(user);
-    if (canManageTaxonomy()) startTaxonomyListeners();
+    if (canAccessResourceManagement()) startTaxonomyListeners();
   } catch (error) {
     $("status-banner").textContent = "تعذّر التحقق من الصلاحيات أو قراءة البيانات. راجع إعدادات Firestore Rules. لن تُمنح صلاحيات من الواجهة.";
     console.error("TPL admin initialization failed:", error);
@@ -162,6 +167,18 @@ function authErrorMessage(code) {
 function canManageTaxonomy() {
   return currentRole === "super_admin" || currentRole === "content_manager";
 }
+function canCreateResources() {
+  return ["super_admin", "content_manager", "content_contributor"].includes(currentRole);
+}
+function canReviewResources() {
+  return ["super_admin", "content_manager", "academic_reviewer"].includes(currentRole);
+}
+function canEditResources() {
+  return canReviewResources();
+}
+function canAccessResourceManagement() {
+  return canManageTaxonomy() || canCreateResources() || canReviewResources();
+}
 
 function taxonomyMessage(message, isError = false) {
   const node = $("taxonomy-message");
@@ -180,7 +197,7 @@ function stopTaxonomyListeners() {
 
 function startTaxonomyListeners() {
   stopTaxonomyListeners();
-  if (!canManageTaxonomy()) return;
+  if (!canAccessResourceManagement()) return;
   taxonomyMessage("جارٍ تحميل الفروع والمواد...");
   branchUnsubscribe = onSnapshot(collection(db, "branches"), (snapshot) => {
     managedBranches = snapshot.docs.map((item) => {
@@ -556,16 +573,22 @@ function renderManagedResources() {
     let toggleLabel = "إرسال للمراجعة";
     if (resource.status === "pending_review") toggleLabel = "اعتماد ونشر";
     if (resource.status === "published") toggleLabel = "إيقاف النشر";
-    actions.append(
-      makeManagerButton("تعديل", "button-mini", () => beginResourceEdit(resource)),
-      makeManagerButton(toggleLabel, "button-mini" + (resource.status === "published" ? " danger" : ""), () => advanceResourceStatus(resource))
-    );
-    row.append(main, status, actions);
+    if (canEditResources()) {
+      actions.append(makeManagerButton("تعديل", "button-mini", () => beginResourceEdit(resource)));
+    }
+    if (canReviewResources()) {
+      actions.append(makeManagerButton(toggleLabel, "button-mini" + (resource.status === "published" ? " danger" : ""), () => advanceResourceStatus(resource)));
+    }
+    if (actions.childElementCount) row.append(main, status, actions);
+    else row.append(main, status);
     list.appendChild(row);
   }
 }
 
 function beginResourceEdit(resource) {
+  if (!canEditResources()) return;
+  $("resource-form").hidden = false;
+  $("resource-submit").hidden = false;
   $("resource-edit-id").value = resource.id;
   $("resource-title").value = resource.title;
   $("resource-description").value = resource.description;
@@ -579,6 +602,8 @@ function beginResourceEdit(resource) {
 
 function resetResourceForm() {
   $("resource-form").reset();
+  $("resource-form").hidden = !canCreateResources();
+  $("resource-submit").hidden = !canCreateResources();
   $("resource-edit-id").value = "";
   $("resource-type").value = "pdf";
   $("resource-submit").textContent = "إضافة للمراجعة";
@@ -587,7 +612,7 @@ function resetResourceForm() {
 }
 
 async function advanceResourceStatus(resource) {
-  if (!canManageTaxonomy()) return;
+  if (!canReviewResources()) return;
   let nextStatus;
   const update = { updatedAt: serverTimestamp() };
   if (resource.status === "published") {
@@ -616,8 +641,8 @@ async function advanceResourceStatus(resource) {
 
 $("resource-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!canManageTaxonomy() || !currentUser) return;
   const editId = $("resource-edit-id").value;
+  if (!currentUser || (!canCreateResources() && !(editId && canEditResources()))) return;
   const title = $("resource-title").value.trim();
   const description = $("resource-description").value.trim();
   const type = $("resource-type").value;
