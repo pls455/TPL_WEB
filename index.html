@@ -80,6 +80,34 @@
             <div id="subjects-list" class="manager-list"><p class="empty-state">جارٍ تحميل المواد...</p></div>
           </section>
         </div>
+        <section class="manager-section resource-manager-section">
+          <div class="manager-heading"><h3>الموارد التعليمية</h3><span id="resource-total" class="count-pill">0</span></div>
+          <p class="muted">أضف روابط خارجية للمحتوى. تُحفظ الموارد بانتظار المراجعة، ولا تظهر للطلاب إلا بعد نشرها.</p>
+          <form id="resource-form" class="manager-form">
+            <input id="resource-edit-id" type="hidden">
+            <label for="resource-title">عنوان المورد</label>
+            <input id="resource-title" maxlength="160" placeholder="مثال: شرح الوحدة الأولى" required>
+            <label for="resource-description">وصف مختصر</label>
+            <textarea id="resource-description" rows="2" maxlength="500" placeholder="ماذا سيجد الطالب داخل الرابط؟"></textarea>
+            <label for="resource-subject">المادة</label>
+            <select id="resource-subject" required><option value="">أضف مادة نشطة أولًا</option></select>
+            <label for="resource-type">نوع المورد</label>
+            <select id="resource-type" required>
+              <option value="pdf">ملف PDF</option>
+              <option value="video">فيديو</option>
+              <option value="exam">امتحان سابق</option>
+              <option value="link">رابط خارجي</option>
+              <option value="summary">ملخص</option>
+            </select>
+            <label for="resource-url">رابط المحتوى</label>
+            <input id="resource-url" type="url" inputmode="url" maxlength="2048" placeholder="https://..." required>
+            <div class="form-actions">
+              <button id="resource-submit" class="button button-primary" type="submit">إضافة للمراجعة</button>
+              <button id="resource-cancel" class="button button-outline" type="button" hidden>إلغاء التعديل</button>
+            </div>
+          </form>
+          <div id="resources-manager-list" class="manager-list"><p class="empty-state">جارٍ تحميل الموارد...</p></div>
+        </section>
       </section>
       <section class="panel resource-panel">
         <div class="panel-heading heading-inline"><div><h2>أحدث الموارد</h2><p>لا يمكن نشر مورد قبل اعتماده حسب سير العمل.</p></div><button id="refresh-button" class="button button-outline">تحديث</button></div>
