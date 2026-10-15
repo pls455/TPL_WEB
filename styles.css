@@ -18,3 +18,13 @@
 #catalog-management .manager-row-meta{line-height:1.8}
 #catalog-management .manager-form textarea{white-space:pre-wrap}
 @media(max-width:850px){#catalog-management .assessment-grid{grid-template-columns:1fr}}
+
+
+/* Super-admin team controls and report moderation */
+#operations-management{margin:20px 0}
+#operations-management>.panel-heading{margin-bottom:18px}
+#operations-management .manager-section{margin-bottom:16px}
+#operations-management .manager-form .button-primary{width:auto}
+#operations-management .manager-row-meta{line-height:1.85}
+#team-active{width:auto;accent-color:var(--forest)}
+#team-form>.branch-choice{width:fit-content;margin-top:14px}
