@@ -198,6 +198,48 @@
         </div>
       </section>
 
+
+      <section id="operations-management" class="panel management-panel" hidden>
+        <div class="panel-heading">
+          <h2>صلاحيات الفريق والبلاغات</h2>
+          <p>هذه الأدوات متاحة حسب الدور. لا يستطيع مدير المحتوى منح نفسه صلاحيات أعلى.</p>
+        </div>
+        <p id="operations-message" class="taxonomy-message" role="status"></p>
+        <section id="team-admin" class="manager-section" hidden>
+          <div class="manager-heading"><h3>أعضاء فريق الإدارة</h3><span id="team-total" class="count-pill">0</span></div>
+          <p class="muted">أنشئ حساب المستخدم أولًا في Firebase Authentication، ثم أدخل UID نفسه هنا. التعطيل يوقف صلاحيات اللوحة ولا يحذف الحساب.</p>
+          <form id="team-form" class="manager-form">
+            <input id="team-edit-uid" type="hidden">
+            <label for="team-uid">UID من Firebase Authentication</label>
+            <input id="team-uid" maxlength="128" autocomplete="off" placeholder="الصق UID للحساب المسجّل مسبقًا" required>
+            <label for="team-name">اسم العرض</label>
+            <input id="team-name" maxlength="100" placeholder="اسم عضو الفريق">
+            <label for="team-email">البريد الإلكتروني</label>
+            <input id="team-email" type="email" maxlength="254" placeholder="member@example.com">
+            <label for="team-role">الصلاحية</label>
+            <select id="team-role" required>
+              <option value="content_manager">مدير محتوى</option>
+              <option value="academic_reviewer">مراجع أكاديمي</option>
+              <option value="content_contributor">مساهم محتوى</option>
+              <option value="sponsored_ads_manager">مدير الإعلانات</option>
+              <option value="technical_support">الدعم الفني</option>
+            </select>
+            <label class="branch-choice"><input id="team-active" type="checkbox" checked><span>الحساب نشط ومسموح له بالدخول</span></label>
+            <div class="form-actions">
+              <button id="team-submit" class="button button-primary" type="submit">إضافة عضو</button>
+              <button id="team-cancel" class="button button-outline" type="button" hidden>إلغاء التعديل</button>
+            </div>
+          </form>
+          <div id="team-list" class="manager-list"><p class="empty-state">جارٍ تحميل أعضاء الفريق...</p></div>
+        </section>
+
+        <section id="report-admin" class="manager-section" hidden>
+          <div class="manager-heading"><h3>مراجعة بلاغات المستخدمين</h3><span id="report-total" class="count-pill">0</span></div>
+          <p class="muted">راجع البلاغات وأغلق ما عولج منها. يتم الاحتفاظ بالسجل لأغراض المتابعة بدل الحذف.</p>
+          <div id="reports-list" class="manager-list"><p class="empty-state">جارٍ تحميل البلاغات...</p></div>
+        </section>
+      </section>
+
       <section class="panel resource-panel">
         <div class="panel-heading heading-inline"><div><h2>أحدث الموارد</h2><p>لا يمكن نشر مورد قبل اعتماده حسب سير العمل.</p></div><button id="refresh-button" class="button button-outline">تحديث</button></div>
         <div class="table-wrap"><table><thead><tr><th>العنوان</th><th>المادة</th><th>النوع</th><th>الحالة</th></tr></thead><tbody id="resources-body"><tr><td colspan="4" class="empty-state">جارٍ التحميل...</td></tr></tbody></table></div>
@@ -207,5 +249,6 @@
   </main>
   <script type="module" src="./app.js"></script>
   <script type="module" src="./academics-admin.js"></script>
+  <script type="module" src="./admin-operations.js"></script>
 </body>
 </html>
