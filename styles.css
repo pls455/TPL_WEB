@@ -55,3 +55,11 @@
 .manager-section>.form-disclosure:last-of-type{margin-bottom:14px}
 @media(max-width:760px){.admin-navigation{margin:0 -2px 18px;padding:6px;border-radius:14px}.admin-nav-item{flex-basis:135px;padding:10px}.admin-nav-item>span:first-child{width:32px;height:32px;flex-basis:32px}.admin-nav-item small{font-size:9px}.form-disclosure>summary{padding:12px}}
 @media(prefers-reduced-motion:reduce){[data-admin-content],.admin-nav-item,.form-disclosure>summary:after{animation:none!important;transition:none!important}}
+
+#operations-management{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+#operations-management>.panel-heading,#operations-management>.taxonomy-message{grid-column:1/-1}
+#operations-management .manager-section{margin:0}
+#operations-management .manager-form{max-width:none}
+#operations-management .manager-row{align-items:flex-start}
+#operations-management .manager-row-actions{flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:850px){#operations-management{grid-template-columns:1fr}#operations-management>.panel-heading,#operations-management>.taxonomy-message{grid-column:auto}}
