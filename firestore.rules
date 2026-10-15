@@ -58,7 +58,7 @@ service cloud.firestore {
           'keywords','sourceName','sourceUrl','storageKey','externalUrl','status',
           'reviewedBy','reviewedAt','reviewNote','updatedAt','version'
         ]);
-      allow delete: if isSuperAdmin();
+      allow delete: if hasRole(['super_admin','content_manager']);
     }
 
     match /resourceVersions/{id} {
@@ -73,6 +73,12 @@ service cloud.firestore {
     match /questions/{id} {
       allow read: if hasRole(['super_admin','content_manager','academic_reviewer']);
       allow write: if hasRole(['super_admin','content_manager','academic_reviewer']);
+    }
+
+    // Student-facing projection excludes the answer key and explanations.
+    match /studentQuestions/{id} {
+      allow read: if resource.data.published == true && resource.data.active == true;
+      allow create, update, delete: if hasRole(['super_admin','content_manager','academic_reviewer']);
     }
     match /attempts/{id} {
       allow read: if signedIn() && resource.data.userId == request.auth.uid || hasRole(['super_admin','academic_reviewer']);
