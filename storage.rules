@@ -1,0 +1,36 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function adminRecord() {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/adminUsers/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/adminUsers/$(request.auth.uid)).data.active == true;
+    }
+    function canManageUploads() {
+      return signedIn() && (
+        request.auth.uid == "ZbkBsAAjdccepK8mrmf3jfgrqdR2"
+        || (adminRecord()
+          && firestore.get(/databases/(default)/documents/adminUsers/$(request.auth.uid)).data.role
+            in ['super_admin', 'content_manager', 'content_contributor', 'academic_reviewer'])
+      );
+    }
+    function publishedResource(resourceId) {
+      return firestore.exists(/databases/(default)/documents/resources/$(resourceId))
+        && firestore.get(/databases/(default)/documents/resources/$(resourceId)).data.status == 'published';
+    }
+
+    match /resources/{resourceId}/{fileName} {
+      allow read: if canManageUploads() || publishedResource(resourceId);
+      allow write: if canManageUploads() && (
+        request.resource == null ||
+        (request.resource.size <= 50 * 1024 * 1024
+          && request.resource.contentType.matches(
+            'application/pdf|image/.*|video/.*|audio/.*|application/msword|application/vnd.openxmlformats-officedocument.*|application/vnd.ms-powerpoint|application/vnd.ms-excel|application/zip|application/x-zip-compressed|application/x-rar-compressed|application/octet-stream'
+          ))
+      );
+    }
+  }
+}
