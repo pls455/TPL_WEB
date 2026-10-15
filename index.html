@@ -52,7 +52,7 @@
       <section id="management-panel" class="panel management-panel" data-admin-content="taxonomy" hidden>
         <div class="panel-heading">
           <h2>إدارة الفروع والمواد</h2>
-          <p>كل تعديل هنا يُحفظ في Firestore ويظهر في تطبيق الطلاب مباشرة. التعطيل يخفي العنصر دون حذف ارتباطاته.</p>
+          <p>كل تعديل هنا يُحفظ في Firestore ويظهر في تطبيق الطلاب مباشرة. يمكن حذف العنصر نهائيًا؛ وقد تمنع اللوحة الحذف إذا بقيت عناصر مرتبطة به.</p>
         </div>
         <p id="taxonomy-message" class="taxonomy-message" role="status"></p>
         <div id="taxonomy-controls" class="management-grid">
@@ -152,7 +152,7 @@
 
         <section id="unit-admin" class="manager-section">
           <div class="manager-heading"><h3>الوحدات والفصول</h3><span id="unit-total" class="count-pill">0</span></div>
-          <p class="muted">اربط كل وحدة بمادة، وحدد ترتيبها. تعطيل الوحدة يخفيها دون حذف بياناتها.</p>
+          <p class="muted">اربط كل وحدة بمادة، وحدد ترتيبها. يمكن حذف الوحدة إذا لم تكن مرتبطة بموارد.</p>
           <details class="form-disclosure" id="unit-form-disclosure"><summary>إضافة وحدة أو فصل</summary>
 <form id="unit-form" class="manager-form">
             <input id="unit-edit-id" type="hidden">
@@ -246,7 +246,7 @@
         <p id="operations-message" class="taxonomy-message" role="status"></p>
         <section id="team-admin" class="manager-section" hidden>
           <div class="manager-heading"><h3>أعضاء فريق الإدارة</h3><span id="team-total" class="count-pill">0</span></div>
-          <p class="muted">أنشئ حساب المستخدم أولًا في Firebase Authentication، ثم أدخل UID نفسه هنا. التعطيل يوقف صلاحيات اللوحة ولا يحذف الحساب.</p>
+          <p class="muted">أنشئ حساب المستخدم أولًا في Firebase Authentication، ثم أدخل UID نفسه هنا. الحذف يزيل صلاحيات TPL عن العضو، لكنه لا يحذف حساب Firebase Authentication نفسه.</p>
           <details class="form-disclosure" id="team-form-disclosure"><summary>إضافة عضو إلى الفريق</summary>
 <form id="team-form" class="manager-form">
             <input id="team-edit-uid" type="hidden">
@@ -264,8 +264,7 @@
               <option value="sponsored_ads_manager">مدير الإعلانات</option>
               <option value="technical_support">الدعم الفني</option>
             </select>
-            <label class="branch-choice"><input id="team-active" type="checkbox" checked><span>الحساب نشط ومسموح له بالدخول</span></label>
-            <div class="form-actions">
+                        <div class="form-actions">
               <button id="team-submit" class="button button-primary" type="submit">إضافة عضو</button>
               <button id="team-cancel" class="button button-outline" type="button" hidden>إلغاء التعديل</button>
             </div>
