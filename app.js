@@ -1,6 +1,7 @@
 import { getApp, getApps, initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, collection, query, where, orderBy, limit, getDocs, addDoc, updateDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, collection, query, where, orderBy, limit, getDocs, addDoc, updateDoc, deleteDoc, setDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-storage.js";
 
 // Firebase web configuration identifies the project; it is not an Admin SDK credential.
 // Never put service-account keys or Dbrij access secrets in this file.
@@ -16,6 +17,7 @@ const SUPER_ADMIN_UID = "ZbkBsAAjdccepK8mrmf3jfgrqdR2";
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 const $ = (id) => document.getElementById(id);
 const loginView = $("login-view");
 const dashboardView = $("dashboard-view");
@@ -315,7 +317,8 @@ function startTaxonomyListeners() {
         branchIds: Array.isArray(data.branchIds) ? data.branchIds.filter((id) => typeof id === "string") : [],
         externalUrl: String(data.externalUrl || data.sourceUrl || ""),
         status: String(data.status || "draft"),
-        version: Number.isFinite(Number(data.version)) ? Number(data.version) : 1
+        version: Number.isFinite(Number(data.version)) ? Number(data.version) : 1,
+        storageKey: String(data.storageKey || "")
       };
     }).filter((item) => item.title.trim()).sort((a, b) => a.title.localeCompare(b.title, "ar"));
     renderManagedResources();
@@ -364,7 +367,7 @@ function renderBranches() {
     actions.className = "manager-row-actions";
     actions.append(
       makeManagerButton("تعديل", "button-mini", () => beginBranchEdit(branch)),
-      makeManagerButton(branch.active ? "تعطيل" : "تفعيل", "button-mini" + (branch.active ? " danger" : ""), () => toggleBranch(branch))
+      makeManagerButton("حذف", "button-mini danger", () => deleteBranch(branch))
     );
     row.append(main, status, actions);
     list.appendChild(row);
@@ -428,7 +431,7 @@ function renderSubjects() {
     actions.className = "manager-row-actions";
     actions.append(
       makeManagerButton("تعديل", "button-mini", () => beginSubjectEdit(subject)),
-      makeManagerButton(subject.active ? "تعطيل" : "تفعيل", "button-mini" + (subject.active ? " danger" : ""), () => toggleSubject(subject))
+      makeManagerButton("حذف", "button-mini danger", () => deleteSubject(subject))
     );
     row.append(main, status, actions);
     list.appendChild(row);
@@ -475,25 +478,42 @@ function resetSubjectForm() {
   renderBranchChoices([]);
 }
 
-async function toggleBranch(branch) {
+async function deleteBranch(branch) {
   if (!canManageTaxonomy()) return;
+  if (!confirm(`حذف فرع «${branch.name}» نهائيًا؟`)) return;
+  const linkedSubjects = managedSubjects.filter((subject) => subject.branchIds.includes(branch.id));
+  if (linkedSubjects.length) {
+    taxonomyMessage("لا يمكن حذف الفرع قبل فك ارتباط المواد التالية به: " + linkedSubjects.map((item) => item.name).join("، ") + ".", true);
+    return;
+  }
   try {
-    await updateDoc(doc(db, "branches", branch.id), { active: !branch.active, updatedAt: serverTimestamp() });
-    taxonomyMessage(branch.active ? "تم تعطيل الفرع. سيختفي من تطبيق الطلاب دون حذف المواد المرتبطة." : "تم تفعيل الفرع وسيظهر للطلاب.");
+    await deleteDoc(doc(db, "branches", branch.id));
+    taxonomyMessage("تم حذف الفرع نهائيًا.");
   } catch (error) {
-    console.error("Branch update failed:", error);
-    taxonomyMessage("لم يتم تغيير حالة الفرع. تحقق من الصلاحيات والاتصال.", true);
+    console.error("Branch delete failed:", error);
+    taxonomyMessage("تعذّر حذف الفرع. تحقق من صلاحيات الإدارة وقواعد Firestore.", true);
   }
 }
 
-async function toggleSubject(subject) {
+async function deleteSubject(subject) {
   if (!canManageTaxonomy()) return;
+  if (!confirm(`حذف مادة «${subject.name}» نهائيًا؟`)) return;
   try {
-    await updateDoc(doc(db, "subjects", subject.id), { active: !subject.active, updatedAt: serverTimestamp() });
-    taxonomyMessage(subject.active ? "تم تعطيل المادة وإخفاؤها عن الطلاب." : "تم تفعيل المادة.");
+    const [resources, tests, units] = await Promise.all([
+      getDocs(query(collection(db, "resources"), where("subjectId", "==", subject.id))),
+      getDocs(query(collection(db, "tests"), where("subjectId", "==", subject.id))),
+      getDocs(query(collection(db, "units"), where("subjectId", "==", subject.id)))
+    ]);
+    const dependentCount = resources.size + tests.size + units.size;
+    if (dependentCount) {
+      taxonomyMessage(`لا يمكن حذف المادة؛ ما زال مرتبطًا بها ${resources.size} مورد و${tests.size} اختبار و${units.size} وحدة. احذف العناصر المرتبطة أولًا.`, true);
+      return;
+    }
+    await deleteDoc(doc(db, "subjects", subject.id));
+    taxonomyMessage("تم حذف المادة نهائيًا.");
   } catch (error) {
-    console.error("Subject update failed:", error);
-    taxonomyMessage("لم يتم تغيير حالة المادة. تحقق من الصلاحيات والاتصال.", true);
+    console.error("Subject delete failed:", error);
+    taxonomyMessage("تعذّر حذف المادة أو التحقق من ارتباطاتها. تحقق من قواعد Firestore.", true);
   }
 }
 
@@ -585,7 +605,9 @@ const resourceTypeNames = {
   video: "فيديو",
   exam: "امتحان سابق",
   link: "رابط خارجي",
-  summary: "ملخص"
+  summary: "ملخص",
+  image: "صورة", document: "مستند Word", presentation: "عرض تقديمي",
+  spreadsheet: "ملف Excel", audio: "ملف صوتي", archive: "ملف مضغوط"
 };
 
 function renderResourceSubjectOptions(selectedId = null) {
@@ -648,6 +670,9 @@ function renderManagedResources() {
     if (canReviewResources()) {
       actions.append(makeManagerButton(toggleLabel, "button-mini" + (resource.status === "published" ? " danger" : ""), () => advanceResourceStatus(resource)));
     }
+    if (canManageTaxonomy()) {
+      actions.append(makeManagerButton("حذف", "button-mini danger", () => deleteResource(resource)));
+    }
     if (actions.childElementCount) row.append(main, status, actions);
     else row.append(main, status);
     list.appendChild(row);
@@ -664,7 +689,10 @@ function beginResourceEdit(resource) {
   $("resource-description").value = resource.description;
   $("resource-type").value = resource.type in resourceTypeNames ? resource.type : "link";
   renderResourceSubjectOptions(resource.subjectId);
+  $("resource-source-mode").value = resource.storageKey ? "upload" : "link";
   $("resource-url").value = resource.externalUrl;
+  $("resource-file").value = "";
+  syncResourceSourceMode();
   $("resource-submit").textContent = "حفظ وإرسال للمراجعة";
   $("resource-cancel").hidden = false;
   $("resource-title").focus();
@@ -677,10 +705,50 @@ function resetResourceForm() {
   $("resource-submit").hidden = !canCreateResources();
   $("resource-edit-id").value = "";
   $("resource-type").value = "pdf";
+  $("resource-source-mode").value = "upload";
+  $("resource-file").value = "";
+  syncResourceSourceMode();
   $("resource-submit").textContent = "إضافة للمراجعة";
   $("resource-cancel").hidden = true;
   renderResourceSubjectOptions("");
 }
+
+async function deleteResource(resource) {
+  if (!canManageTaxonomy()) return;
+  if (!confirm(`حذف المورد «${resource.title}» نهائيًا؟`)) return;
+  try {
+    await deleteDoc(doc(db, "resources", resource.id));
+    if (resource.storageKey) {
+      try { await deleteObject(storageRef(storage, resource.storageKey)); }
+      catch (storageError) { console.warn("Storage file cleanup failed:", storageError); }
+    }
+    taxonomyMessage("تم حذف المورد نهائيًا.");
+  } catch (error) {
+    console.error("Resource delete failed:", error);
+    taxonomyMessage("تعذّر حذف المورد. تحقق من صلاحيات الإدارة.", true);
+  }
+}
+
+function syncResourceSourceMode() {
+  const mode = $("resource-source-mode")?.value || "upload";
+  $("resource-file-field").hidden = mode !== "upload";
+  $("resource-link-field").hidden = mode !== "link";
+  $("resource-file").required = mode === "upload" && !$("resource-edit-id").value;
+  $("resource-url").required = mode === "link";
+}
+$("resource-source-mode").addEventListener("change", syncResourceSourceMode);
+$("resource-file").addEventListener("change", () => {
+  const file = $("resource-file").files?.[0];
+  if (!file) return;
+  const ext = file.name.toLowerCase().split(".").pop();
+  const typeByExtension = {
+    pdf: "pdf", png: "image", jpg: "image", jpeg: "image", webp: "image", gif: "image",
+    doc: "document", docx: "document", ppt: "presentation", pptx: "presentation",
+    xls: "spreadsheet", xlsx: "spreadsheet", mp4: "video", mp3: "audio", wav: "audio",
+    zip: "archive", rar: "archive"
+  };
+  if (typeByExtension[ext]) $("resource-type").value = typeByExtension[ext];
+});
 
 async function advanceResourceStatus(resource) {
   if (!canReviewResources()) return;
@@ -717,16 +785,40 @@ $("resource-form").addEventListener("submit", async (event) => {
   const title = $("resource-title").value.trim();
   const description = $("resource-description").value.trim();
   const type = $("resource-type").value;
+  const mode = $("resource-source-mode").value;
+  const file = $("resource-file").files?.[0] || null;
+  const old = managedResources.find((item) => item.id === editId);
   const subject = managedSubjects.find((item) => item.id === $("resource-subject").value && item.active);
-  const rawUrl = $("resource-url").value.trim();
-  let parsedUrl;
-  try { parsedUrl = new URL(rawUrl); } catch { parsedUrl = null; }
   if (!title || !subject) {
     taxonomyMessage("اكتب عنوان المورد واختر مادة نشطة.", true);
     return;
   }
-  if (!parsedUrl || !["https:", "http:"].includes(parsedUrl.protocol)) {
-    taxonomyMessage("استخدم رابطًا صالحًا يبدأ بـ https:// أو http://.", true);
+  if (file && file.size > 50 * 1024 * 1024) {
+    taxonomyMessage("حجم الملف أكبر من 50 ميغابايت. اختر ملفًا أصغر.", true);
+    return;
+  }
+  if (file && !/\.(pdf|png|jpe?g|webp|gif|docx?|pptx?|xlsx?|mp4|mp3|wav|zip|rar)$/i.test(file.name)) {
+    taxonomyMessage("نوع الملف غير مدعوم. اختر PDF أو صورة أو مستندًا أو وسائط أو ملفًا مضغوطًا.", true);
+    return;
+  }
+  let externalUrl = old?.externalUrl || "";
+  let sourceUrl = old?.externalUrl || "";
+  let storageKey = old?.storageKey || "";
+  if (mode === "link") {
+    let parsedUrl;
+    try { parsedUrl = new URL($("resource-url").value.trim()); } catch { parsedUrl = null; }
+    if (!parsedUrl || !["https:", "http:"].includes(parsedUrl.protocol)) {
+      taxonomyMessage("استخدم رابطًا صالحًا يبدأ بـ https:// أو http://.", true);
+      return;
+    }
+    externalUrl = parsedUrl.href;
+    sourceUrl = parsedUrl.href;
+    storageKey = "";
+  } else if (file) {
+    externalUrl = "";
+    sourceUrl = "";
+  } else if (!editId || !storageKey) {
+    taxonomyMessage("اختر ملفًا من جهازك قبل إضافة المورد.", true);
     return;
   }
   const activeBranchIds = subject.branchIds.filter((id) => managedBranches.some((branch) => branch.id === id && branch.active));
@@ -737,41 +829,50 @@ $("resource-form").addEventListener("submit", async (event) => {
 
   const button = $("resource-submit");
   button.disabled = true;
-  const payload = {
-    title,
-    description,
-    type,
-    branchIds: activeBranchIds,
-    subjectId: subject.id,
-    subjectName: subject.name,
-    keywords: [],
-    sourceName: "",
-    sourceUrl: parsedUrl.href,
-    externalUrl: parsedUrl.href,
-    status: "pending_review",
-    updatedAt: serverTimestamp()
-  };
+  let uploadedKey = "";
   try {
+    const resourceRef = editId ? doc(db, "resources", editId) : doc(collection(db, "resources"));
+    if (mode === "upload" && file) {
+      const safeName = file.name.replace(/[^\w.-]+/g, "_").slice(-100) || "file";
+      storageKey = `resources/${resourceRef.id}/${Date.now()}_${safeName}`;
+      uploadedKey = storageKey;
+      const objectRef = storageRef(storage, storageKey);
+      const uploaded = await uploadBytes(objectRef, file, {
+        contentType: file.type || "application/octet-stream",
+        customMetadata: { uploadedBy: currentUser.uid, resourceId: resourceRef.id }
+      });
+      externalUrl = await getDownloadURL(uploaded.ref);
+      sourceUrl = externalUrl;
+    }
+
+    const payload = {
+      title, description, type, branchIds: activeBranchIds,
+      subjectId: subject.id, subjectName: subject.name, keywords: [],
+      sourceName: mode === "upload" ? "ملف مرفوع" : "رابط خارجي",
+      sourceUrl: sourceUrl, externalUrl: externalUrl, storageKey: storageKey,
+      status: "pending_review", updatedAt: serverTimestamp(),
+      version: (old?.version || 0) + 1
+    };
     if (editId) {
-      const old = managedResources.find((item) => item.id === editId);
-      await updateDoc(doc(db, "resources", editId), {
-        ...payload,
-        version: (old?.version || 1) + 1
-      });
-      taxonomyMessage("تم حفظ التعديلات وإعادة المورد إلى المراجعة. لا يظهر للطلاب قبل نشره.");
+      await updateDoc(resourceRef, payload);
+      taxonomyMessage("تم حفظ المورد وإرساله للمراجعة. سيظهر للطلاب بعد اعتماده ونشره.");
     } else {
-      await addDoc(collection(db, "resources"), {
-        ...payload,
-        createdBy: currentUser.uid,
-        createdAt: serverTimestamp(),
-        version: 1
+      await setDoc(resourceRef, {
+        ...payload, createdBy: currentUser.uid, createdAt: serverTimestamp()
       });
-      taxonomyMessage("تم حفظ المورد بانتظار المراجعة. سينشر فقط بعد اعتماد الإدارة.");
+      taxonomyMessage("تم حفظ المورد بانتظار المراجعة. سيظهر بعد اعتماد الإدارة.");
+    }
+    if (old?.storageKey && old.storageKey !== storageKey) {
+      try { await deleteObject(storageRef(storage, old.storageKey)); }
+      catch (storageError) { console.warn("Previous storage file cleanup failed:", storageError); }
     }
     resetResourceForm();
   } catch (error) {
     console.error("Resource save failed:", error);
-    taxonomyMessage("تعذّر حفظ المورد. تأكد من نشر Firestore Rules وصلاحيات مدير المحتوى.", true);
+    if (uploadedKey) {
+      try { await deleteObject(storageRef(storage, uploadedKey)); } catch {}
+    }
+    taxonomyMessage("تعذّر حفظ المورد أو رفع الملف. تحقق من نشر Firestore Rules وStorage Rules والصلاحيات.", true);
   } finally {
     button.disabled = false;
   }
