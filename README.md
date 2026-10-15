@@ -49,6 +49,7 @@ Footer signature: **MADE BY Karam_Dev**
 The repository contains `firestore.rules` and `storage.rules`, but GitHub Pages does not deploy Firebase rules automatically. Publish both files through Firebase Console before testing the new features:
 1. In Firebase Console, open **Firestore Database → Rules**, replace the rules with `firestore.rules`, and publish.
 2. Open **Storage → Rules**, replace the rules with `storage.rules`, and publish.
-3. Verify uploads as a signed-in content manager, then approve a resource and confirm students can open the file only after publication.
+3. The configured bucket name `tpl-38d2e.firebasestorage.app` requires the Firebase **Blaze** plan for Cloud Storage access. Spark projects receive 402/403 errors; no-cost usage may still apply on Blaze, but a billing account is required.
+4. Verify uploads as a signed-in content manager, then approve a resource and confirm students can open the file only after publication. Set budget alerts before enabling billing.
 
 Student-facing assessment questions are copied to `studentQuestions` without `correctAnswer` or `explanation`. The student app can display and collect choices locally, but trusted automatic grading and saving attempts are not implemented in this build.
