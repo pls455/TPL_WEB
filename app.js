@@ -638,7 +638,7 @@ function renderManagedResources() {
   if (!managedResources.length) {
     const empty = document.createElement("div");
     empty.className = "manager-empty";
-    empty.textContent = "لا توجد موارد بعد. أضف رابطًا خارجيًا من النموذج أعلاه.";
+    empty.textContent = "لا توجد موارد بعد. ارفع ملفًا أو أضف رابطًا خارجيًا من النموذج أعلاه.";
     list.appendChild(empty);
     return;
   }
@@ -654,7 +654,7 @@ function renderManagedResources() {
     const meta = document.createElement("span");
     meta.className = "manager-row-meta";
     meta.textContent = (subject?.name || resource.subjectName || "مادة غير معروفة") + " · " +
-      (resourceTypeNames[resource.type] || resource.type) + (resource.externalUrl ? " · " + resource.externalUrl : "");
+      (resourceTypeNames[resource.type] || resource.type) + (resource.storageKey ? " · ملف مرفوع" : resource.externalUrl ? " · رابط خارجي" : "");
     main.append(title, meta);
     const status = document.createElement("span");
     status.className = "manager-status" + (resource.status === "published" ? "" : " inactive");
