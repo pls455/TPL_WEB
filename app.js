@@ -48,6 +48,8 @@ function showMessage(message, success = false) {
 }
 function showLogin() {
   stopTaxonomyListeners();
+  const navigation = $("admin-navigation");
+  if (navigation) navigation.hidden = true;
   loginView.hidden = false;
   dashboardView.hidden = true;
   $("account-actions").hidden = true;
@@ -65,6 +67,7 @@ function showDashboard(user, role) {
   $("account-actions").hidden = false;
   $("user-email").textContent = user.email || "حساب الإدارة";
   $("role-pill").textContent = roleNames[role] || role;
+  configureAdminNavigation();
   resetResourceForm();
 }
 loginForm.addEventListener("submit", async (event) => {
@@ -154,6 +157,60 @@ function renderResources(resources) {
     tag.textContent = statusNames[item.status] || item.status || "—";
     statusCell.appendChild(tag); tr.appendChild(statusCell); tbody.appendChild(tr);
   }
+}
+const adminPageLabels = {
+  overview: "نظرة عامة",
+  taxonomy: "الفروع والمواد",
+  resources: "الموارد",
+  curriculum: "المنهج والاختبارات",
+  team: "الفريق والبلاغات"
+};
+function canOpenCatalog() {
+  return ["super_admin", "content_manager", "academic_reviewer"].includes(currentRole);
+}
+function canOpenOperations() {
+  return ["super_admin", "content_manager", "academic_reviewer", "technical_support"].includes(currentRole);
+}
+function configureAdminNavigation() {
+  const navigation = $("admin-navigation");
+  if (!navigation) return;
+  navigation.hidden = false;
+  navigation.querySelector('[data-admin-page="taxonomy"]').hidden = !canManageTaxonomy();
+  navigation.querySelector('[data-admin-page="resources"]').hidden = !canAccessResourceManagement();
+  navigation.querySelector('[data-admin-page="curriculum"]').hidden = !canOpenCatalog();
+  navigation.querySelector('[data-admin-page="team"]').hidden = !canOpenOperations();
+  navigation.querySelectorAll("[data-admin-page]").forEach((button) => {
+    if (!button.dataset.bound) {
+      button.dataset.bound = "true";
+      button.addEventListener("click", () => showAdminPage(button.dataset.adminPage));
+    }
+  });
+  showAdminPage("overview");
+}
+function showAdminPage(page) {
+  const allowed = {
+    overview: true,
+    taxonomy: canManageTaxonomy(),
+    resources: canAccessResourceManagement(),
+    curriculum: canOpenCatalog(),
+    team: canOpenOperations()
+  };
+  if (!allowed[page]) page = "overview";
+  document.querySelectorAll("[data-admin-page]").forEach((button) => {
+    const active = button.dataset.adminPage === page;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-current", active ? "page" : "false");
+  });
+  $("overview-section").hidden = page !== "overview";
+  $("recent-resources-panel").hidden = page !== "overview";
+  $("management-panel").hidden = !["taxonomy", "resources"].includes(page) || !canAccessResourceManagement();
+  $("catalog-management").hidden = page !== "curriculum" || !canOpenCatalog();
+  $("operations-management").hidden = page !== "team" || !canOpenOperations();
+  $("taxonomy-controls").hidden = page !== "taxonomy" || !canManageTaxonomy();
+  const managementHeading = $("management-panel").querySelector(".panel-heading");
+  if (managementHeading) managementHeading.hidden = page !== "taxonomy" || !canManageTaxonomy();
+  $("resource-manager-section").hidden = page !== "resources";
+  $("dashboard-view").dataset.activePage = page;
 }
 function authErrorMessage(code) {
   if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") return "بيانات الدخول غير صحيحة.";
