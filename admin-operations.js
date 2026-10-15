@@ -18,6 +18,15 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const $ = (id) => document.getElementById(id);
+function openFormDisclosure(formId) {
+  const disclosure = $(formId)?.closest("details.form-disclosure");
+  if (disclosure) disclosure.open = true;
+}
+function closeFormDisclosure(formId) {
+  const disclosure = $(formId)?.closest("details.form-disclosure");
+  if (disclosure) disclosure.open = false;
+}
+
 
 const roleNames = {
   super_admin: "المدير العام",
@@ -117,6 +126,7 @@ function renderTeam() {
   });
 }
 function editTeamMember(member) {
+  openFormDisclosure("team-form");
   if (!canManageTeam() || member.id === SUPER_ADMIN_UID) return;
   $("team-edit-uid").value = member.id;
   $("team-uid").value = member.id;
@@ -130,6 +140,7 @@ function editTeamMember(member) {
   $("team-name").focus();
 }
 function resetTeamForm() {
+  closeFormDisclosure("team-form");
   $("team-form").reset();
   $("team-edit-uid").value = "";
   $("team-uid").disabled = false;
@@ -267,7 +278,7 @@ onAuthStateChanged(auth, async (user) => {
     const reportsAllowed = canManageReports();
     $("team-admin").hidden = !teamAllowed;
     $("report-admin").hidden = !reportsAllowed;
-    $("operations-management").hidden = !(teamAllowed || reportsAllowed);
+    $("operations-management").hidden = !(teamAllowed || reportsAllowed) || $("dashboard-view").dataset.activePage !== "team";
     if (teamAllowed) {
       teamUnsubscribe = onSnapshot(collection(db, "adminUsers"), (snapshot) => {
         teamMembers = snapshot.docs.map((item) => {
