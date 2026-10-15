@@ -33,14 +33,23 @@
     </section>
 
     <section id="dashboard-view" hidden>
-      <div class="welcome-row"><div><p class="eyebrow">مساحة العمل</p><h1>نظرة عامة</h1><p class="muted">هذه لوحة تأسيسية. البيانات تظهر من Firestore عند ضبط الصلاحيات والمجموعات.</p></div><span id="role-pill" class="role-pill">جارٍ التحقق</span></div>
-      <div id="status-banner" class="status-banner">جارٍ تحميل بيانات الحساب...</div>
+      <nav id="admin-navigation" class="admin-navigation" aria-label="أقسام لوحة الإدارة">
+        <button class="admin-nav-item active" type="button" data-admin-page="overview"><span>⌂</span><span><strong>نظرة عامة</strong><small>ملخص اللوحة</small></span></button>
+        <button class="admin-nav-item" type="button" data-admin-page="taxonomy"><span>▦</span><span><strong>الفروع والمواد</strong><small>تنظيم المكتبة</small></span></button>
+        <button class="admin-nav-item" type="button" data-admin-page="resources"><span>↗</span><span><strong>الموارد</strong><small>إضافة ومراجعة</small></span></button>
+        <button class="admin-nav-item" type="button" data-admin-page="curriculum"><span>☷</span><span><strong>المنهج والاختبارات</strong><small>وحدات وأسئلة</small></span></button>
+        <button class="admin-nav-item" type="button" data-admin-page="team"><span>♙</span><span><strong>الفريق والبلاغات</strong><small>الصلاحيات والمتابعة</small></span></button>
+      </nav>
+      <div id="overview-section" data-admin-content="overview">
+        <div class="welcome-row"><div><p class="eyebrow">مساحة العمل</p><h1>نظرة عامة</h1><p class="muted">ملخص سريع لحالة المحتوى، ثم اختر القسم الذي تريد إدارته من القائمة.</p></div><span id="role-pill" class="role-pill">جارٍ التحقق</span></div>
+        <div id="status-banner" class="status-banner">جارٍ تحميل بيانات الحساب...</div>
       <div class="stats-grid">
         <article class="stat-card"><span class="stat-icon">▤</span><p>الموارد المنشورة</p><strong id="published-count">—</strong><small>من Firestore</small></article>
         <article class="stat-card"><span class="stat-icon">◷</span><p>بانتظار المراجعة</p><strong id="pending-count">—</strong><small>للمراجعين المخوّلين</small></article>
         <article class="stat-card"><span class="stat-icon">↗</span><p>بلاغات مفتوحة</p><strong id="reports-count">—</strong><small>إذا كانت المجموعة متاحة</small></article>
       </div>
-      <section id="management-panel" class="panel management-panel" hidden>
+      </div>
+      <section id="management-panel" class="panel management-panel" data-admin-content="taxonomy" hidden>
         <div class="panel-heading">
           <h2>إدارة الفروع والمواد</h2>
           <p>كل تعديل هنا يُحفظ في Firestore ويظهر في تطبيق الطلاب مباشرة. التعطيل يخفي العنصر دون حذف ارتباطاته.</p>
@@ -80,7 +89,7 @@
             <div id="subjects-list" class="manager-list"><p class="empty-state">جارٍ تحميل المواد...</p></div>
           </section>
         </div>
-        <section class="manager-section resource-manager-section">
+        <section class="manager-section resource-manager-section" id="resource-manager-section" hidden>
           <div class="manager-heading"><h3>الموارد التعليمية</h3><span id="resource-total" class="count-pill">0</span></div>
           <p class="muted">أضف روابط خارجية للمحتوى. تُحفظ الموارد بانتظار المراجعة، ولا تظهر للطلاب إلا بعد نشرها.</p>
           <form id="resource-form" class="manager-form">
@@ -110,7 +119,7 @@
         </section>
       </section>
 
-      <section id="catalog-management" class="panel management-panel" hidden>
+      <section id="catalog-management" class="panel management-panel" data-admin-content="curriculum" hidden>
         <div class="panel-heading">
           <h2>إدارة المنهج والاختبارات</h2>
           <p>الوحدات والاختبارات تُحفظ في Firestore. إدارة الوحدات منفصلة عن إدارة الاختبارات حسب الصلاحيات.</p>
@@ -199,7 +208,7 @@
       </section>
 
 
-      <section id="operations-management" class="panel management-panel" hidden>
+      <section id="operations-management" class="panel management-panel" data-admin-content="team" hidden>
         <div class="panel-heading">
           <h2>صلاحيات الفريق والبلاغات</h2>
           <p>هذه الأدوات متاحة حسب الدور. لا يستطيع مدير المحتوى منح نفسه صلاحيات أعلى.</p>
@@ -240,7 +249,7 @@
         </section>
       </section>
 
-      <section class="panel resource-panel">
+      <section class="panel resource-panel" id="recent-resources-panel" data-admin-content="overview">
         <div class="panel-heading heading-inline"><div><h2>أحدث الموارد</h2><p>لا يمكن نشر مورد قبل اعتماده حسب سير العمل.</p></div><button id="refresh-button" class="button button-outline">تحديث</button></div>
         <div class="table-wrap"><table><thead><tr><th>العنوان</th><th>المادة</th><th>النوع</th><th>الحالة</th></tr></thead><tbody id="resources-body"><tr><td colspan="4" class="empty-state">جارٍ التحميل...</td></tr></tbody></table></div>
       </section>
