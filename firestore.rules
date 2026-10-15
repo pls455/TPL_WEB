@@ -77,7 +77,8 @@ service cloud.firestore {
 
     // Student-facing projection excludes the answer key and explanations.
     match /studentQuestions/{id} {
-      allow read: if resource.data.published == true && resource.data.active == true;
+      allow read: if (resource.data.published == true && resource.data.active == true)
+        || hasRole(['super_admin','content_manager','academic_reviewer']);
       allow create, update, delete: if hasRole(['super_admin','content_manager','academic_reviewer']);
     }
     match /attempts/{id} {
