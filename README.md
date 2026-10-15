@@ -35,7 +35,6 @@ Arabic-first administration panel for **Tawjihi Palestine Library**.
 - Resource entries currently use external links. Uploading files to Dbrij and secure signed download delivery are not implemented.
 - Unit records are cloud-managed here, but the Android student view has not yet been connected to display units/chapters.
 - Test definitions can be published, but question documents remain admin/reviewer-only to prevent exposing answer keys. Student exam delivery, secure attempts, and grading are not implemented yet.
-- Resource uploads to Dbrij and secure signed download delivery are not implemented.
 - Rules in this repository are a starting point and should be emulator-tested before production. Publishing a new GitHub commit does not publish Firestore rules.
 
 ## Role identifiers
