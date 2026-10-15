@@ -1,0 +1,114 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isSuperAdmin() {
+      return signedIn() && request.auth.uid == "ZbkBsAAjdccepK8mrmf3jfgrqdR2";
+    }
+    function adminRecord() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid))
+        && get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.active == true;
+    }
+    function hasRole(roles) {
+      return isSuperAdmin() || (adminRecord()
+        && get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.role in roles);
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid || isSuperAdmin();
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['displayName','email','branch','createdAt','updatedAt']);
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName','branch','updatedAt']);
+      allow delete: if isSuperAdmin();
+    }
+
+    match /adminUsers/{uid} {
+      allow read: if isSuperAdmin() || (signedIn() && request.auth.uid == uid);
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    match /branches/{id} {
+      allow read: if resource.data.active == true || hasRole(['super_admin','content_manager','academic_reviewer','content_contributor','technical_support']);
+      allow write: if hasRole(['super_admin','content_manager']);
+    }
+    match /subjects/{id} {
+      allow read: if resource.data.active == true || hasRole(['super_admin','content_manager','academic_reviewer','content_contributor','technical_support']);
+      allow write: if hasRole(['super_admin','content_manager']);
+    }
+    match /units/{id} {
+      allow read: if resource.data.active == true || hasRole(['super_admin','content_manager','academic_reviewer','content_contributor','technical_support']);
+      allow write: if hasRole(['super_admin','content_manager']);
+    }
+
+    match /resources/{id} {
+      allow read: if resource.data.status == 'published'
+        || hasRole(['super_admin','content_manager','academic_reviewer','content_contributor','technical_support']);
+      allow create: if hasRole(['super_admin','content_manager','content_contributor'])
+        && request.resource.data.status in ['draft','pending_review']
+        && request.resource.data.keys().hasOnly([
+          'title','description','type','branchIds','subjectId','subjectName','unitId',
+          'keywords','sourceName','sourceUrl','storageKey','externalUrl','status',
+          'createdBy','createdAt','updatedAt','version'
+        ]);
+      allow update: if hasRole(['super_admin','content_manager','academic_reviewer'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'title','description','type','branchIds','subjectId','subjectName','unitId',
+          'keywords','sourceName','sourceUrl','storageKey','externalUrl','status',
+          'reviewedBy','reviewedAt','reviewNote','updatedAt','version'
+        ]);
+      allow delete: if isSuperAdmin();
+    }
+
+    match /resourceVersions/{id} {
+      allow read: if hasRole(['super_admin','content_manager','academic_reviewer','content_contributor']);
+      allow create: if hasRole(['super_admin','content_manager']);
+      allow update, delete: if isSuperAdmin();
+    }
+    match /tests/{id} {
+      allow read: if resource.data.published == true || hasRole(['super_admin','content_manager','academic_reviewer']);
+      allow write: if hasRole(['super_admin','content_manager','academic_reviewer']);
+    }
+    match /questions/{id} {
+      allow read: if hasRole(['super_admin','content_manager','academic_reviewer']);
+      allow write: if hasRole(['super_admin','content_manager','academic_reviewer']);
+    }
+    match /attempts/{id} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid || hasRole(['super_admin','academic_reviewer']);
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSuperAdmin();
+    }
+    match /studyProgress/{id} {
+      allow read, create, update: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isSuperAdmin();
+    }
+    match /reports/{id} {
+      allow create: if signedIn()
+        && request.resource.data.reporterUid == request.auth.uid
+        && request.resource.data.status == 'open';
+      allow read, update: if hasRole(['super_admin','technical_support','content_manager','academic_reviewer']);
+      allow delete: if isSuperAdmin();
+    }
+    match /solutions/{id} {
+      allow read: if resource.data.published == true || hasRole(['super_admin','content_manager','academic_reviewer']);
+      allow write: if hasRole(['super_admin','content_manager','academic_reviewer']);
+    }
+    match /tools/{id} {
+      allow read: if resource.data.active == true || hasRole(['super_admin','content_manager']);
+      allow write: if hasRole(['super_admin','content_manager']);
+    }
+    match /appSettings/{id} {
+      allow read: if true;
+      allow write: if hasRole(['super_admin','content_manager']);
+    }
+    match /auditLogs/{id} {
+      allow read: if hasRole(['super_admin','technical_support']);
+      allow create: if hasRole(['super_admin','content_manager','academic_reviewer','sponsored_ads_manager','content_contributor','technical_support']);
+      allow update, delete: if isSuperAdmin();
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
