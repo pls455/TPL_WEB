@@ -42,6 +42,14 @@ const statusNames = {
   draft: "مسودة", pending_review: "بانتظار المراجعة", needs_changes: "تحتاج تعديل",
   approved: "معتمدة", published: "منشورة", archived: "مؤرشفة"
 };
+function openFormDisclosure(formId) {
+  const disclosure = $(formId)?.closest("details.form-disclosure");
+  if (disclosure) disclosure.open = true;
+}
+function closeFormDisclosure(formId) {
+  const disclosure = $(formId)?.closest("details.form-disclosure");
+  if (disclosure) disclosure.open = false;
+}
 function showMessage(message, success = false) {
   $("login-message").textContent = message;
   $("login-message").style.color = success ? "#236244" : "#9b3737";
@@ -428,6 +436,7 @@ function renderSubjects() {
 }
 
 function beginBranchEdit(branch) {
+  openFormDisclosure("branch-form");
   $("branch-edit-id").value = branch.id;
   $("branch-name").value = branch.name;
   $("branch-order").value = String(branch.order === 9999 ? 1 : branch.order);
@@ -437,6 +446,7 @@ function beginBranchEdit(branch) {
 }
 
 function resetBranchForm() {
+  closeFormDisclosure("branch-form");
   $("branch-form").reset();
   $("branch-edit-id").value = "";
   $("branch-order").value = String(managedBranches.length + 1);
@@ -445,6 +455,7 @@ function resetBranchForm() {
 }
 
 function beginSubjectEdit(subject) {
+  openFormDisclosure("subject-form");
   $("subject-edit-id").value = subject.id;
   $("subject-name").value = subject.name;
   $("subject-order").value = String(subject.order === 9999 ? 1 : subject.order);
@@ -455,6 +466,7 @@ function beginSubjectEdit(subject) {
 }
 
 function resetSubjectForm() {
+  closeFormDisclosure("subject-form");
   $("subject-form").reset();
   $("subject-edit-id").value = "";
   $("subject-order").value = String(managedSubjects.length + 1);
@@ -643,6 +655,7 @@ function renderManagedResources() {
 }
 
 function beginResourceEdit(resource) {
+  openFormDisclosure("resource-form");
   if (!canEditResources()) return;
   $("resource-form").hidden = false;
   $("resource-submit").hidden = false;
@@ -658,6 +671,7 @@ function beginResourceEdit(resource) {
 }
 
 function resetResourceForm() {
+  closeFormDisclosure("resource-form");
   $("resource-form").reset();
   $("resource-form").hidden = !canCreateResources();
   $("resource-submit").hidden = !canCreateResources();
