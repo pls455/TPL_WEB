@@ -105,16 +105,34 @@
             <textarea id="resource-description" rows="2" maxlength="500" placeholder="ماذا سيجد الطالب داخل الرابط؟"></textarea>
             <label for="resource-subject">المادة</label>
             <select id="resource-subject" required><option value="">أضف مادة نشطة أولًا</option></select>
-            <label for="resource-type">نوع المورد</label>
+            <label for="resource-source-mode">طريقة إضافة المورد</label>
+            <select id="resource-source-mode" required>
+              <option value="upload">رفع ملف من الجهاز</option>
+              <option value="link">إضافة رابط خارجي</option>
+            </select>
+            <div id="resource-file-field" class="upload-field">
+              <label for="resource-file">الملف التعليمي</label>
+              <input id="resource-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.mp4,.mp3,.wav,.zip,.rar">
+              <p id="resource-upload-help" class="small-note">PDF، صور، Word، PowerPoint، Excel، فيديو، صوت أو ملف مضغوط. الحد الأقصى 50 ميغابايت.</p>
+            </div>
+            <div id="resource-link-field" hidden>
+              <label for="resource-url">رابط المحتوى</label>
+              <input id="resource-url" type="url" inputmode="url" maxlength="2048" placeholder="https://...">
+            </div>
+            <label for="resource-type">تصنيف المورد</label>
             <select id="resource-type" required>
               <option value="pdf">ملف PDF</option>
+              <option value="image">صورة</option>
+              <option value="document">مستند Word</option>
+              <option value="presentation">عرض تقديمي</option>
+              <option value="spreadsheet">ملف Excel</option>
               <option value="video">فيديو</option>
+              <option value="audio">ملف صوتي</option>
+              <option value="archive">ملف مضغوط</option>
               <option value="exam">امتحان سابق</option>
-              <option value="link">رابط خارجي</option>
               <option value="summary">ملخص</option>
+              <option value="link">رابط خارجي</option>
             </select>
-            <label for="resource-url">رابط المحتوى</label>
-            <input id="resource-url" type="url" inputmode="url" maxlength="2048" placeholder="https://..." required>
             <div class="form-actions">
               <button id="resource-submit" class="button button-primary" type="submit">إضافة للمراجعة</button>
               <button id="resource-cancel" class="button button-outline" type="button" hidden>إلغاء التعديل</button>
