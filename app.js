@@ -735,6 +735,8 @@ function syncResourceSourceMode() {
   $("resource-link-field").hidden = mode !== "link";
   $("resource-file").required = mode === "upload" && !$("resource-edit-id").value;
   $("resource-url").required = mode === "link";
+  if (mode === "link" && $("resource-type").value === "pdf") $("resource-type").value = "link";
+  if (mode === "upload" && $("resource-type").value === "link") $("resource-type").value = "pdf";
 }
 $("resource-source-mode").addEventListener("change", syncResourceSourceMode);
 $("resource-file").addEventListener("change", () => {
