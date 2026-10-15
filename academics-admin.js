@@ -1,8 +1,8 @@
 import { getApp, getApps, initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, collection, addDoc, updateDoc,
-  onSnapshot, serverTimestamp
+  getFirestore, doc, getDoc, collection, addDoc, updateDoc, deleteDoc, setDoc,
+  getDocs, query, where, onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -240,7 +240,7 @@ function renderUnits() {
     const subject = subjects.find((item) => item.id === unit.subjectId);
     const actions = [
       safeButton("تعديل", () => editUnit(unit)),
-      safeButton(unit.active ? "تعطيل" : "تفعيل", () => toggleUnit(unit), unit.active)
+      safeButton("حذف", () => deleteUnit(unit), true)
     ];
     list.appendChild(makeRow(unit.name, (subject?.name || unit.subjectName || "مادة غير معروفة") + " · الترتيب: " + unit.order +
       (unit.description ? " · " + unit.description : ""), unit.active ? "نشطة" : "معطّلة", unit.active, actions));
@@ -266,14 +266,20 @@ function resetUnitForm() {
   $("unit-cancel").hidden = true;
   fillSubjectSelect("unit-subject", "");
 }
-async function toggleUnit(unit) {
+async function deleteUnit(unit) {
   if (!canManageUnits()) return;
+  if (!confirm(`حذف الوحدة «${unit.name}» نهائيًا؟`)) return;
   try {
-    await updateDoc(doc(db, "units", unit.id), { active: !unit.active, updatedAt: serverTimestamp() });
-    message(unit.active ? "تم تعطيل الوحدة دون حذفها." : "تم تفعيل الوحدة.");
+    const linkedResources = await getDocs(query(collection(db, "resources"), where("unitId", "==", unit.id)));
+    if (!linkedResources.empty) {
+      message("لا يمكن حذف الوحدة لأنها مرتبطة بموارد. افصل الموارد عنها أولًا.", true);
+      return;
+    }
+    await deleteDoc(doc(db, "units", unit.id));
+    message("تم حذف الوحدة نهائيًا.");
   } catch (error) {
-    console.error("Unit state update failed:", error);
-    message("تعذّر تغيير حالة الوحدة. تحقق من صلاحيات الإدارة وقواعد Firestore.", true);
+    console.error("Unit delete failed:", error);
+    message("تعذّر حذف الوحدة أو التحقق من ارتباطاتها. راجع صلاحيات الإدارة.", true);
   }
 }
 $("unit-form").addEventListener("submit", async (event) => {
@@ -329,7 +335,8 @@ function renderTests() {
     const state = test.published ? "منشور" : "مسودة";
     const actions = [
       safeButton("تعديل", () => editTest(test)),
-      safeButton(test.published ? "إيقاف النشر" : "نشر التعريف", () => toggleTestPublished(test), test.published)
+      safeButton(test.published ? "إيقاف النشر" : "نشر للطلاب", () => toggleTestPublished(test), test.published),
+      safeButton("حذف", () => deleteTest(test), true)
     ];
     list.appendChild(makeRow(test.title,
       (subject?.name || test.subjectName || "مادة غير معروفة") + " · " + (testTypeNames[test.type] || test.type) +
@@ -358,18 +365,73 @@ function resetTestForm() {
   $("test-cancel").hidden = true;
   fillSubjectSelect("test-subject", "");
 }
+async function syncStudentQuestions(testId, published) {
+  const [sourceSnapshot, publicSnapshot] = await Promise.all([
+    getDocs(query(collection(db, "questions"), where("testId", "==", testId))),
+    getDocs(query(collection(db, "studentQuestions"), where("testId", "==", testId)))
+  ]);
+  const keepIds = new Set();
+  const tasks = [];
+  sourceSnapshot.docs.forEach((item) => {
+    const data = item.data();
+    if (data.active === false) return;
+    keepIds.add(item.id);
+    tasks.push(setDoc(doc(db, "studentQuestions", item.id), {
+      testId,
+      questionText: String(data.questionText || ""),
+      type: String(data.type || "multiple_choice"),
+      options: Array.isArray(data.options) ? data.options.filter((option) => typeof option === "string") : [],
+      points: Number(data.points || 1),
+      published: Boolean(published),
+      active: true,
+      updatedAt: serverTimestamp()
+    }));
+  });
+  publicSnapshot.docs.forEach((item) => {
+    if (!keepIds.has(item.id)) tasks.push(deleteDoc(doc(db, "studentQuestions", item.id)));
+  });
+  await Promise.all(tasks);
+}
+
 async function toggleTestPublished(test) {
   if (!canManageAssessments()) return;
   if (!test.published && !questions.some((question) => question.testId === test.id && question.active)) {
     message("أضف سؤالًا نشطًا واحدًا على الأقل قبل نشر الاختبار.", true);
     return;
   }
+  const nextPublished = !test.published;
   try {
-    await updateDoc(doc(db, "tests", test.id), { published: !test.published, updatedAt: serverTimestamp() });
-    message(test.published ? "تم إيقاف نشر تعريف الاختبار." : "تم نشر تعريف الاختبار. أسئلة الاختبار وإجاباتها ما زالت محمية من قراءة الطلاب حتى اكتمال مسار المحاولة والتصحيح الآمن.");
+    await updateDoc(doc(db, "tests", test.id), { published: nextPublished, updatedAt: serverTimestamp() });
+    await syncStudentQuestions(test.id, nextPublished);
+    message(nextPublished
+      ? "تم نشر الاختبار وأسئلته للطلاب. الإجابات الصحيحة بقيت داخل مساحة الإدارة."
+      : "تم إخفاء الاختبار وأسئلته عن الطلاب.");
   } catch (error) {
     console.error("Test publish update failed:", error);
-    message("تعذّر تغيير حالة نشر الاختبار. تحقق من قواعد Firestore.", true);
+    if (nextPublished) {
+      try { await updateDoc(doc(db, "tests", test.id), { published: false, updatedAt: serverTimestamp() }); } catch {}
+    }
+    message("تعذّر نشر الاختبار أو تجهيز نسخة أسئلته للطلاب. تحقق من قواعد Firestore.", true);
+  }
+}
+
+async function deleteTest(test) {
+  if (!canManageAssessments()) return;
+  if (!confirm(`حذف الاختبار «${test.title}» وأسئلته نهائيًا؟`)) return;
+  try {
+    const [sourceSnapshot, publicSnapshot] = await Promise.all([
+      getDocs(query(collection(db, "questions"), where("testId", "==", test.id))),
+      getDocs(query(collection(db, "studentQuestions"), where("testId", "==", test.id)))
+    ]);
+    await Promise.all([
+      ...sourceSnapshot.docs.map((item) => deleteDoc(doc(db, "questions", item.id))),
+      ...publicSnapshot.docs.map((item) => deleteDoc(doc(db, "studentQuestions", item.id))),
+      deleteDoc(doc(db, "tests", test.id))
+    ]);
+    message("تم حذف الاختبار وأسئلته نهائيًا.");
+  } catch (error) {
+    console.error("Test delete failed:", error);
+    message("تعذّر حذف الاختبار. تحقق من صلاحيات الإدارة وقواعد Firestore.", true);
   }
 }
 $("test-form").addEventListener("submit", async (event) => {
@@ -445,7 +507,7 @@ function renderQuestions() {
       (question.active ? "نشط" : "معطّل") + (question.options.length ? " · " + question.options.length + " خيارات" : "");
     const actions = [
       safeButton("تعديل", () => editQuestion(question)),
-      safeButton(question.active ? "تعطيل" : "تفعيل", () => toggleQuestion(question), question.active)
+      safeButton("حذف", () => deleteQuestion(question), true)
     ];
     list.appendChild(makeRow((index + 1) + ". " + question.questionText, meta,
       question.active ? "نشط" : "معطّل", question.active, actions));
@@ -476,14 +538,20 @@ function resetQuestionForm() {
   renderTestSelect($("question-test").value);
   updateQuestionTypeFields();
 }
-async function toggleQuestion(question) {
+async function deleteQuestion(question) {
   if (!canManageAssessments()) return;
+  if (!confirm("حذف هذا السؤال نهائيًا؟")) return;
   try {
-    await updateDoc(doc(db, "questions", question.id), { active: !question.active, updatedAt: serverTimestamp() });
-    message(question.active ? "تم تعطيل السؤال دون حذفه." : "تم تفعيل السؤال.");
+    await Promise.all([
+      deleteDoc(doc(db, "questions", question.id)),
+      deleteDoc(doc(db, "studentQuestions", question.id))
+    ]);
+    const test = tests.find((item) => item.id === question.testId);
+    if (test?.published) await syncStudentQuestions(test.id, true);
+    message("تم حذف السؤال نهائيًا.");
   } catch (error) {
-    console.error("Question state update failed:", error);
-    message("تعذّر تغيير حالة السؤال. تحقق من قواعد Firestore.", true);
+    console.error("Question delete failed:", error);
+    message("تعذّر حذف السؤال. تحقق من قواعد Firestore.", true);
   }
 }
 $("question-form").addEventListener("submit", async (event) => {
@@ -546,6 +614,7 @@ $("question-form").addEventListener("submit", async (event) => {
       });
       message("تمت إضافة السؤال إلى بنك الأسئلة.");
     }
+    if (test.published) await syncStudentQuestions(test.id, true);
     resetQuestionForm();
   } catch (error) {
     console.error("Question save failed:", error);
