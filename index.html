@@ -46,7 +46,7 @@
           <p>كل تعديل هنا يُحفظ في Firestore ويظهر في تطبيق الطلاب مباشرة. التعطيل يخفي العنصر دون حذف ارتباطاته.</p>
         </div>
         <p id="taxonomy-message" class="taxonomy-message" role="status"></p>
-        <div class="management-grid">
+        <div id="taxonomy-controls" class="management-grid">
           <section class="manager-section">
             <div class="manager-heading"><h3>الفروع</h3><span id="branch-total" class="count-pill">0</span></div>
             <form id="branch-form" class="manager-form">
@@ -109,6 +109,95 @@
           <div id="resources-manager-list" class="manager-list"><p class="empty-state">جارٍ تحميل الموارد...</p></div>
         </section>
       </section>
+
+      <section id="catalog-management" class="panel management-panel" hidden>
+        <div class="panel-heading">
+          <h2>إدارة المنهج والاختبارات</h2>
+          <p>الوحدات والاختبارات تُحفظ في Firestore. إدارة الوحدات منفصلة عن إدارة الاختبارات حسب الصلاحيات.</p>
+        </div>
+        <p id="catalog-message" class="taxonomy-message" role="status"></p>
+
+        <section id="unit-admin" class="manager-section">
+          <div class="manager-heading"><h3>الوحدات والفصول</h3><span id="unit-total" class="count-pill">0</span></div>
+          <p class="muted">اربط كل وحدة بمادة، وحدد ترتيبها. تعطيل الوحدة يخفيها دون حذف بياناتها.</p>
+          <form id="unit-form" class="manager-form">
+            <input id="unit-edit-id" type="hidden">
+            <label for="unit-name">اسم الوحدة أو الفصل</label>
+            <input id="unit-name" maxlength="120" placeholder="مثال: الوحدة الأولى" required>
+            <label for="unit-subject">المادة</label>
+            <select id="unit-subject" required><option value="">جارٍ تحميل المواد...</option></select>
+            <label for="unit-order">ترتيب العرض</label>
+            <input id="unit-order" type="number" min="0" step="1" value="1" required>
+            <label for="unit-description">وصف اختياري</label>
+            <textarea id="unit-description" rows="2" maxlength="500" placeholder="موضوعات الوحدة أو ملاحظات للمحررين"></textarea>
+            <div class="form-actions">
+              <button id="unit-submit" class="button button-primary" type="submit">إضافة وحدة</button>
+              <button id="unit-cancel" class="button button-outline" type="button" hidden>إلغاء التعديل</button>
+            </div>
+          </form>
+          <div id="units-list" class="manager-list"><p class="empty-state">جارٍ تحميل الوحدات...</p></div>
+        </section>
+
+        <div class="management-grid assessment-grid">
+          <section id="test-admin" class="manager-section">
+            <div class="manager-heading"><h3>الاختبارات</h3><span id="test-total" class="count-pill">0</span></div>
+            <form id="test-form" class="manager-form">
+              <input id="test-edit-id" type="hidden">
+              <label for="test-title">اسم الاختبار</label>
+              <input id="test-title" maxlength="160" placeholder="مثال: اختبار الوحدة الأولى" required>
+              <label for="test-subject">المادة</label>
+              <select id="test-subject" required><option value="">جارٍ تحميل المواد...</option></select>
+              <label for="test-type">نوع الاختبار</label>
+              <select id="test-type" required>
+                <option value="practice">تدريب</option>
+                <option value="timed">اختبار بوقت</option>
+                <option value="past_paper">ورقة امتحان سابقة</option>
+              </select>
+              <label for="test-duration">المدة بالدقائق، 0 دون مؤقت</label>
+              <input id="test-duration" type="number" min="0" max="600" step="1" value="0" required>
+              <label for="test-description">وصف الاختبار</label>
+              <textarea id="test-description" rows="2" maxlength="700" placeholder="نطاق الأسئلة أو تعليمات الاختبار"></textarea>
+              <div class="form-actions">
+                <button id="test-submit" class="button button-primary" type="submit">إضافة اختبار</button>
+                <button id="test-cancel" class="button button-outline" type="button" hidden>إلغاء التعديل</button>
+              </div>
+            </form>
+            <div id="tests-list" class="manager-list"><p class="empty-state">جارٍ تحميل الاختبارات...</p></div>
+          </section>
+
+          <section id="question-admin" class="manager-section">
+            <div class="manager-heading"><h3>بنك الأسئلة</h3><span id="question-total" class="count-pill">0</span></div>
+            <p class="muted">تُحفظ الإجابات الصحيحة للإدارة فقط. لن تُرسل أسئلة الاختبارات للطلاب قبل بناء آلية آمنة للمحاولات والتصحيح.</p>
+            <form id="question-form" class="manager-form">
+              <input id="question-edit-id" type="hidden">
+              <label for="question-test">الاختبار</label>
+              <select id="question-test" required><option value="">أنشئ اختبارًا أولًا</option></select>
+              <label for="question-text">نص السؤال</label>
+              <textarea id="question-text" rows="3" maxlength="3000" placeholder="اكتب السؤال بوضوح" required></textarea>
+              <label for="question-type">نوع السؤال</label>
+              <select id="question-type" required>
+                <option value="multiple_choice">اختيار من متعدد</option>
+                <option value="true_false">صح أو خطأ</option>
+                <option value="short_answer">إجابة قصيرة</option>
+              </select>
+              <label for="question-options">الخيارات، خيار بكل سطر (للاختيار المتعدد)</label>
+              <textarea id="question-options" rows="3" maxlength="2000" placeholder="الخيار الأول&#10;الخيار الثاني&#10;الخيار الثالث"></textarea>
+              <label for="question-answer">الإجابة الصحيحة</label>
+              <input id="question-answer" maxlength="1000" placeholder="اكتب الإجابة المطابقة لأحد الخيارات عند الاختيار المتعدد" required>
+              <label for="question-points">العلامة</label>
+              <input id="question-points" type="number" min="0.5" max="100" step="0.5" value="1" required>
+              <label for="question-explanation">شرح الإجابة، اختياري</label>
+              <textarea id="question-explanation" rows="2" maxlength="1500" placeholder="شرح يفيد عند المراجعة"></textarea>
+              <div class="form-actions">
+                <button id="question-submit" class="button button-primary" type="submit">إضافة سؤال</button>
+                <button id="question-cancel" class="button button-outline" type="button" hidden>إلغاء التعديل</button>
+              </div>
+            </form>
+            <div id="questions-list" class="manager-list"><p class="empty-state">اختر اختبارًا لعرض أسئلته.</p></div>
+          </section>
+        </div>
+      </section>
+
       <section class="panel resource-panel">
         <div class="panel-heading heading-inline"><div><h2>أحدث الموارد</h2><p>لا يمكن نشر مورد قبل اعتماده حسب سير العمل.</p></div><button id="refresh-button" class="button button-outline">تحديث</button></div>
         <div class="table-wrap"><table><thead><tr><th>العنوان</th><th>المادة</th><th>النوع</th><th>الحالة</th></tr></thead><tbody id="resources-body"><tr><td colspan="4" class="empty-state">جارٍ التحميل...</td></tr></tbody></table></div>
@@ -116,6 +205,6 @@
       <p class="footer-note">MADE BY Karam_Dev · TPL</p>
     </section>
   </main>
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./app.js"></script>\n  <script type="module" src="./academics-admin.js"></script>
 </body>
 </html>
