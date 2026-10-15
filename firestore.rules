@@ -80,7 +80,10 @@ service cloud.firestore {
       allow update, delete: if isSuperAdmin();
     }
     match /studyProgress/{id} {
-      allow read, create, update: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if signedIn() && resource.data.userId == request.auth.uid || hasRole(['super_admin','academic_reviewer']);
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if signedIn() && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid;
       allow delete: if isSuperAdmin();
     }
     match /reports/{id} {
