@@ -25,8 +25,10 @@ let currentUser = null;
 let currentRole = null;
 let branchUnsubscribe = null;
 let subjectUnsubscribe = null;
+let resourceUnsubscribe = null;
 let managedBranches = [];
 let managedSubjects = [];
+let managedResources = [];
 
 const roleNames = {
   super_admin: "المدير العام",
@@ -170,8 +172,10 @@ function taxonomyMessage(message, isError = false) {
 function stopTaxonomyListeners() {
   if (branchUnsubscribe) branchUnsubscribe();
   if (subjectUnsubscribe) subjectUnsubscribe();
+  if (resourceUnsubscribe) resourceUnsubscribe();
   branchUnsubscribe = null;
   subjectUnsubscribe = null;
+  resourceUnsubscribe = null;
 }
 
 function startTaxonomyListeners() {
@@ -190,6 +194,8 @@ function startTaxonomyListeners() {
     }).filter((item) => item.name.trim()).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "ar"));
     renderBranches();
     renderBranchChoices();
+    renderSubjects();
+    renderResourceSubjectOptions();
   }, (error) => {
     console.error("Branch management read failed:", error);
     taxonomyMessage("تعذّرت قراءة الفروع. تحقق من نشر Firestore Rules وصلاحية مدير المحتوى.", true);
@@ -207,9 +213,33 @@ function startTaxonomyListeners() {
       };
     }).filter((item) => item.name.trim()).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "ar"));
     renderSubjects();
+    renderResourceSubjectOptions();
+    renderManagedResources();
   }, (error) => {
     console.error("Subject management read failed:", error);
     taxonomyMessage("تعذّرت قراءة المواد. تحقق من قواعد Firestore وصلاحية مدير المحتوى.", true);
+  });
+
+  resourceUnsubscribe = onSnapshot(collection(db, "resources"), (snapshot) => {
+    managedResources = snapshot.docs.map((item) => {
+      const data = item.data();
+      return {
+        id: item.id,
+        title: String(data.title || ""),
+        description: String(data.description || ""),
+        type: String(data.type || "link"),
+        subjectId: String(data.subjectId || ""),
+        subjectName: String(data.subjectName || ""),
+        branchIds: Array.isArray(data.branchIds) ? data.branchIds.filter((id) => typeof id === "string") : [],
+        externalUrl: String(data.externalUrl || data.sourceUrl || ""),
+        status: String(data.status || "draft"),
+        version: Number.isFinite(Number(data.version)) ? Number(data.version) : 1
+      };
+    }).filter((item) => item.title.trim()).sort((a, b) => a.title.localeCompare(b.title, "ar"));
+    renderManagedResources();
+  }, (error) => {
+    console.error("Resource management read failed:", error);
+    taxonomyMessage("تعذّرت قراءة الموارد. تحقق من قواعد Firestore وصلاحيات الإدارة.", true);
   });
 }
 
@@ -461,3 +491,194 @@ $("subject-form").addEventListener("submit", async (event) => {
 });
 
 $("subject-cancel").addEventListener("click", resetSubjectForm);
+
+
+// ---------- External learning resources ----------
+const resourceTypeNames = {
+  pdf: "ملف PDF",
+  video: "فيديو",
+  exam: "امتحان سابق",
+  link: "رابط خارجي",
+  summary: "ملخص"
+};
+
+function renderResourceSubjectOptions(selectedId = null) {
+  const select = $("resource-subject");
+  const previous = selectedId ?? select.value;
+  select.replaceChildren();
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = managedSubjects.some((item) => item.active)
+    ? "اختر المادة"
+    : "أضف مادة نشطة أولًا";
+  select.appendChild(placeholder);
+  managedSubjects.filter((item) => item.active).forEach((subject) => {
+    const option = document.createElement("option");
+    option.value = subject.id;
+    option.textContent = subject.name;
+    select.appendChild(option);
+  });
+  if (previous && Array.from(select.options).some((option) => option.value === previous)) {
+    select.value = previous;
+  }
+}
+
+function renderManagedResources() {
+  $("resource-total").textContent = String(managedResources.length);
+  const list = $("resources-manager-list");
+  list.replaceChildren();
+  if (!managedResources.length) {
+    const empty = document.createElement("div");
+    empty.className = "manager-empty";
+    empty.textContent = "لا توجد موارد بعد. أضف رابطًا خارجيًا من النموذج أعلاه.";
+    list.appendChild(empty);
+    return;
+  }
+  for (const resource of managedResources) {
+    const row = document.createElement("div");
+    row.className = "manager-row";
+    const main = document.createElement("div");
+    main.className = "manager-row-main";
+    const title = document.createElement("span");
+    title.className = "manager-row-title";
+    title.textContent = resource.title;
+    const subject = managedSubjects.find((item) => item.id === resource.subjectId);
+    const meta = document.createElement("span");
+    meta.className = "manager-row-meta";
+    meta.textContent = (subject?.name || resource.subjectName || "مادة غير معروفة") + " · " +
+      (resourceTypeNames[resource.type] || resource.type) + (resource.externalUrl ? " · " + resource.externalUrl : "");
+    main.append(title, meta);
+    const status = document.createElement("span");
+    status.className = "manager-status" + (resource.status === "published" ? "" : " inactive");
+    status.textContent = statusNames[resource.status] || resource.status;
+    const actions = document.createElement("div");
+    actions.className = "manager-row-actions";
+    let toggleLabel = "إرسال للمراجعة";
+    if (resource.status === "pending_review") toggleLabel = "اعتماد ونشر";
+    if (resource.status === "published") toggleLabel = "إيقاف النشر";
+    actions.append(
+      makeManagerButton("تعديل", "button-mini", () => beginResourceEdit(resource)),
+      makeManagerButton(toggleLabel, "button-mini" + (resource.status === "published" ? " danger" : ""), () => advanceResourceStatus(resource))
+    );
+    row.append(main, status, actions);
+    list.appendChild(row);
+  }
+}
+
+function beginResourceEdit(resource) {
+  $("resource-edit-id").value = resource.id;
+  $("resource-title").value = resource.title;
+  $("resource-description").value = resource.description;
+  $("resource-type").value = resource.type in resourceTypeNames ? resource.type : "link";
+  renderResourceSubjectOptions(resource.subjectId);
+  $("resource-url").value = resource.externalUrl;
+  $("resource-submit").textContent = "حفظ وإرسال للمراجعة";
+  $("resource-cancel").hidden = false;
+  $("resource-title").focus();
+}
+
+function resetResourceForm() {
+  $("resource-form").reset();
+  $("resource-edit-id").value = "";
+  $("resource-type").value = "pdf";
+  $("resource-submit").textContent = "إضافة للمراجعة";
+  $("resource-cancel").hidden = true;
+  renderResourceSubjectOptions("");
+}
+
+async function advanceResourceStatus(resource) {
+  if (!canManageTaxonomy()) return;
+  let nextStatus;
+  const update = { updatedAt: serverTimestamp() };
+  if (resource.status === "published") {
+    nextStatus = "archived";
+  } else if (resource.status === "pending_review") {
+    nextStatus = "published";
+    update.reviewedBy = currentUser.uid;
+    update.reviewedAt = serverTimestamp();
+    update.reviewNote = "تم الاعتماد والنشر من لوحة الإدارة";
+  } else {
+    nextStatus = "pending_review";
+  }
+  update.status = nextStatus;
+  try {
+    await updateDoc(doc(db, "resources", resource.id), update);
+    taxonomyMessage(
+      nextStatus === "published" ? "تم اعتماد المورد ونشره داخل التطبيق."
+        : nextStatus === "archived" ? "تم إيقاف نشر المورد، مع الاحتفاظ بسجله."
+        : "تم إرسال المورد إلى قائمة المراجعة."
+    );
+  } catch (error) {
+    console.error("Resource status change failed:", error);
+    taxonomyMessage("تعذّر تغيير حالة المورد. تحقق من الصلاحيات وقواعد Firestore.", true);
+  }
+}
+
+$("resource-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!canManageTaxonomy() || !currentUser) return;
+  const editId = $("resource-edit-id").value;
+  const title = $("resource-title").value.trim();
+  const description = $("resource-description").value.trim();
+  const type = $("resource-type").value;
+  const subject = managedSubjects.find((item) => item.id === $("resource-subject").value && item.active);
+  const rawUrl = $("resource-url").value.trim();
+  let parsedUrl;
+  try { parsedUrl = new URL(rawUrl); } catch { parsedUrl = null; }
+  if (!title || !subject) {
+    taxonomyMessage("اكتب عنوان المورد واختر مادة نشطة.", true);
+    return;
+  }
+  if (!parsedUrl || !["https:", "http:"].includes(parsedUrl.protocol)) {
+    taxonomyMessage("استخدم رابطًا صالحًا يبدأ بـ https:// أو http://.", true);
+    return;
+  }
+  const activeBranchIds = subject.branchIds.filter((id) => managedBranches.some((branch) => branch.id === id && branch.active));
+  if (!activeBranchIds.length) {
+    taxonomyMessage("المادة غير مرتبطة بأي فرع نشط. عدّل ارتباطات المادة أولًا.", true);
+    return;
+  }
+
+  const button = $("resource-submit");
+  button.disabled = true;
+  const payload = {
+    title,
+    description,
+    type,
+    branchIds: activeBranchIds,
+    subjectId: subject.id,
+    subjectName: subject.name,
+    keywords: [],
+    sourceName: "",
+    sourceUrl: parsedUrl.href,
+    externalUrl: parsedUrl.href,
+    status: "pending_review",
+    updatedAt: serverTimestamp()
+  };
+  try {
+    if (editId) {
+      const old = managedResources.find((item) => item.id === editId);
+      await updateDoc(doc(db, "resources", editId), {
+        ...payload,
+        version: (old?.version || 1) + 1
+      });
+      taxonomyMessage("تم حفظ التعديلات وإعادة المورد إلى المراجعة. لا يظهر للطلاب قبل نشره.");
+    } else {
+      await addDoc(collection(db, "resources"), {
+        ...payload,
+        createdBy: currentUser.uid,
+        createdAt: serverTimestamp(),
+        version: 1
+      });
+      taxonomyMessage("تم حفظ المورد بانتظار المراجعة. سينشر فقط بعد اعتماد الإدارة.");
+    }
+    resetResourceForm();
+  } catch (error) {
+    console.error("Resource save failed:", error);
+    taxonomyMessage("تعذّر حفظ المورد. تأكد من نشر Firestore Rules وصلاحيات مدير المحتوى.", true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$("resource-cancel").addEventListener("click", resetResourceForm);
