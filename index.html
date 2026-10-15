@@ -58,7 +58,8 @@
         <div id="taxonomy-controls" class="management-grid">
           <section class="manager-section">
             <div class="manager-heading"><h3>الفروع</h3><span id="branch-total" class="count-pill">0</span></div>
-            <form id="branch-form" class="manager-form">
+            <details class="form-disclosure" id="branch-form-disclosure"><summary>إضافة فرع جديد</summary>
+<form id="branch-form" class="manager-form">
               <input id="branch-edit-id" type="hidden">
               <label for="branch-name">اسم الفرع</label>
               <input id="branch-name" maxlength="80" placeholder="مثال: العلمي" required>
@@ -69,11 +70,13 @@
                 <button id="branch-cancel" class="button button-outline" type="button" hidden>إلغاء التعديل</button>
               </div>
             </form>
+</details>
             <div id="branches-list" class="manager-list"><p class="empty-state">جارٍ تحميل الفروع...</p></div>
           </section>
           <section class="manager-section">
             <div class="manager-heading"><h3>المواد</h3><span id="subject-total" class="count-pill">0</span></div>
-            <form id="subject-form" class="manager-form">
+            <details class="form-disclosure" id="subject-form-disclosure"><summary>إضافة مادة جديدة</summary>
+<form id="subject-form" class="manager-form">
               <input id="subject-edit-id" type="hidden">
               <label for="subject-name">اسم المادة</label>
               <input id="subject-name" maxlength="100" placeholder="مثال: الرياضيات" required>
@@ -86,13 +89,15 @@
                 <button id="subject-cancel" class="button button-outline" type="button" hidden>إلغاء التعديل</button>
               </div>
             </form>
+</details>
             <div id="subjects-list" class="manager-list"><p class="empty-state">جارٍ تحميل المواد...</p></div>
           </section>
         </div>
         <section class="manager-section resource-manager-section" id="resource-manager-section" hidden>
           <div class="manager-heading"><h3>الموارد التعليمية</h3><span id="resource-total" class="count-pill">0</span></div>
           <p class="muted">أضف روابط خارجية للمحتوى. تُحفظ الموارد بانتظار المراجعة، ولا تظهر للطلاب إلا بعد نشرها.</p>
-          <form id="resource-form" class="manager-form">
+          <details class="form-disclosure" id="resource-form-disclosure"><summary>إضافة مورد تعليمي</summary>
+<form id="resource-form" class="manager-form">
             <input id="resource-edit-id" type="hidden">
             <label for="resource-title">عنوان المورد</label>
             <input id="resource-title" maxlength="160" placeholder="مثال: شرح الوحدة الأولى" required>
@@ -115,6 +120,7 @@
               <button id="resource-cancel" class="button button-outline" type="button" hidden>إلغاء التعديل</button>
             </div>
           </form>
+</details>
           <div id="resources-manager-list" class="manager-list"><p class="empty-state">جارٍ تحميل الموارد...</p></div>
         </section>
       </section>
@@ -129,7 +135,8 @@
         <section id="unit-admin" class="manager-section">
           <div class="manager-heading"><h3>الوحدات والفصول</h3><span id="unit-total" class="count-pill">0</span></div>
           <p class="muted">اربط كل وحدة بمادة، وحدد ترتيبها. تعطيل الوحدة يخفيها دون حذف بياناتها.</p>
-          <form id="unit-form" class="manager-form">
+          <details class="form-disclosure" id="unit-form-disclosure"><summary>إضافة وحدة أو فصل</summary>
+<form id="unit-form" class="manager-form">
             <input id="unit-edit-id" type="hidden">
             <label for="unit-name">اسم الوحدة أو الفصل</label>
             <input id="unit-name" maxlength="120" placeholder="مثال: الوحدة الأولى" required>
@@ -144,13 +151,15 @@
               <button id="unit-cancel" class="button button-outline" type="button" hidden>إلغاء التعديل</button>
             </div>
           </form>
+</details>
           <div id="units-list" class="manager-list"><p class="empty-state">جارٍ تحميل الوحدات...</p></div>
         </section>
 
         <div class="management-grid assessment-grid">
           <section id="test-admin" class="manager-section">
             <div class="manager-heading"><h3>الاختبارات</h3><span id="test-total" class="count-pill">0</span></div>
-            <form id="test-form" class="manager-form">
+            <details class="form-disclosure" id="test-form-disclosure"><summary>إنشاء اختبار</summary>
+<form id="test-form" class="manager-form">
               <input id="test-edit-id" type="hidden">
               <label for="test-title">اسم الاختبار</label>
               <input id="test-title" maxlength="160" placeholder="مثال: اختبار الوحدة الأولى" required>
@@ -171,13 +180,15 @@
                 <button id="test-cancel" class="button button-outline" type="button" hidden>إلغاء التعديل</button>
               </div>
             </form>
+</details>
             <div id="tests-list" class="manager-list"><p class="empty-state">جارٍ تحميل الاختبارات...</p></div>
           </section>
 
           <section id="question-admin" class="manager-section">
             <div class="manager-heading"><h3>بنك الأسئلة</h3><span id="question-total" class="count-pill">0</span></div>
             <p class="muted">تُحفظ الإجابات الصحيحة للإدارة فقط. لن تُرسل أسئلة الاختبارات للطلاب قبل بناء آلية آمنة للمحاولات والتصحيح.</p>
-            <form id="question-form" class="manager-form">
+            <details class="form-disclosure" id="question-form-disclosure"><summary>إضافة سؤال إلى بنك الأسئلة</summary>
+<form id="question-form" class="manager-form">
               <input id="question-edit-id" type="hidden">
               <label for="question-test">الاختبار</label>
               <select id="question-test" required><option value="">أنشئ اختبارًا أولًا</option></select>
@@ -202,6 +213,7 @@
                 <button id="question-cancel" class="button button-outline" type="button" hidden>إلغاء التعديل</button>
               </div>
             </form>
+</details>
             <div id="questions-list" class="manager-list"><p class="empty-state">اختر اختبارًا لعرض أسئلته.</p></div>
           </section>
         </div>
@@ -217,7 +229,8 @@
         <section id="team-admin" class="manager-section" hidden>
           <div class="manager-heading"><h3>أعضاء فريق الإدارة</h3><span id="team-total" class="count-pill">0</span></div>
           <p class="muted">أنشئ حساب المستخدم أولًا في Firebase Authentication، ثم أدخل UID نفسه هنا. التعطيل يوقف صلاحيات اللوحة ولا يحذف الحساب.</p>
-          <form id="team-form" class="manager-form">
+          <details class="form-disclosure" id="team-form-disclosure"><summary>إضافة عضو إلى الفريق</summary>
+<form id="team-form" class="manager-form">
             <input id="team-edit-uid" type="hidden">
             <label for="team-uid">UID من Firebase Authentication</label>
             <input id="team-uid" maxlength="128" autocomplete="off" placeholder="الصق UID للحساب المسجّل مسبقًا" required>
@@ -239,6 +252,7 @@
               <button id="team-cancel" class="button button-outline" type="button" hidden>إلغاء التعديل</button>
             </div>
           </form>
+</details>
           <div id="team-list" class="manager-list"><p class="empty-state">جارٍ تحميل أعضاء الفريق...</p></div>
         </section>
 
