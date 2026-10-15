@@ -9,6 +9,8 @@ Arabic-first administration panel for **Tawjihi Palestine Library**.
 - Curriculum-unit management: create/edit units, assign them to active subjects, order them, and activate/deactivate without deleting records.
 - Assessment administration: create/edit practice tests, timed tests, and past-paper entries; validate duration; publish/unpublish the test definition.
 - Question bank: create/edit multiple-choice, true/false, and short-answer questions; validate options and correct answers; assign points and optional explanations; deactivate instead of deleting.
+- Super-admin-only team management: assign the approved role set to existing Firebase Authentication UIDs and activate/deactivate access.
+- Role-gated report moderation for support, content managers, reviewers, and the super admin; resolve or dismiss reports without deleting their records.
 - Live Firestore listeners update manager lists when cloud records change.
 - Overview counters and responsive RTL layout using TPL forest, ivory, and muted-gold colors.
 
@@ -19,6 +21,8 @@ Arabic-first administration panel for **Tawjihi Palestine Library**.
 - `resources`: `title`, `description`, `type`, `branchIds`, `subjectId`, `subjectName`, `externalUrl` / `sourceUrl`, `status`, version and review metadata
 - `tests`: `title`, `description`, `type`, `durationMinutes`, `subjectId`, `subjectName`, `branchIds`, `published`, `active`, timestamps
 - `questions`: `testId`, `testTitle`, `subjectId`, `questionText`, `type`, `options`, `correctAnswer`, `points`, `explanation`, `active`, timestamps
+- `adminUsers`: document ID is the existing Firebase Authentication UID; `role`, `active`, `displayName`, `email`, and audit timestamps
+- `reports`: `reporterUid`, report message/details, `status`, and review metadata
 
 ## Deployment and security
 1. Configure Firebase Authentication authorized domains to include the deployed GitHub Pages domain.
