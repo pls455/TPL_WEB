@@ -27,9 +27,12 @@ let currentUser = null;
 let currentRole = null;
 let branchUnsubscribe = null;
 let subjectUnsubscribe = null;
+let unitUnsubscribe = null;
 let resourceUnsubscribe = null;
 let managedBranches = [];
 let managedSubjects = [];
+let managedUnits = [];
+let managedUnitsLoaded = false;
 let managedResources = [];
 
 const roleNames = {
@@ -256,9 +259,11 @@ function taxonomyMessage(message, isError = false) {
 function stopTaxonomyListeners() {
   if (branchUnsubscribe) branchUnsubscribe();
   if (subjectUnsubscribe) subjectUnsubscribe();
+  if (unitUnsubscribe) unitUnsubscribe();
   if (resourceUnsubscribe) resourceUnsubscribe();
   branchUnsubscribe = null;
   subjectUnsubscribe = null;
+  unitUnsubscribe = null;
   resourceUnsubscribe = null;
 }
 
@@ -304,6 +309,28 @@ function startTaxonomyListeners() {
     taxonomyMessage("تعذّرت قراءة المواد. تحقق من قواعد Firestore وصلاحية مدير المحتوى.", true);
   });
 
+  unitUnsubscribe = onSnapshot(collection(db, "units"), (snapshot) => {
+    managedUnits = snapshot.docs.map((item) => {
+      const data = item.data();
+      return {
+        id: item.id,
+        name: String(data.name || ""),
+        description: String(data.description || ""),
+        subjectId: String(data.subjectId || ""),
+        branchIds: Array.isArray(data.branchIds) ? data.branchIds.filter((id) => typeof id === "string") : [],
+        order: Number.isFinite(Number(data.order)) ? Number(data.order) : 9999,
+        active: data.active !== false
+      };
+    }).filter((item) => item.name.trim()).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "ar"));
+    managedUnitsLoaded = true;
+    renderResourceUnitOptions();
+    renderManagedResources();
+  }, (error) => {
+    console.error("Resource unit listener failed:", error);
+    managedUnitsLoaded = false;
+    renderResourceUnitOptions();
+  });
+
   resourceUnsubscribe = onSnapshot(collection(db, "resources"), (snapshot) => {
     managedResources = snapshot.docs.map((item) => {
       const data = item.data();
@@ -314,6 +341,7 @@ function startTaxonomyListeners() {
         type: String(data.type || "link"),
         subjectId: String(data.subjectId || ""),
         subjectName: String(data.subjectName || ""),
+        unitId: String(data.unitId || ""),
         branchIds: Array.isArray(data.branchIds) ? data.branchIds.filter((id) => typeof id === "string") : [],
         externalUrl: String(data.externalUrl || data.sourceUrl || ""),
         status: String(data.status || "draft"),
@@ -629,7 +657,47 @@ function renderResourceSubjectOptions(selectedId = null) {
   if (previous && Array.from(select.options).some((option) => option.value === previous)) {
     select.value = previous;
   }
+  renderResourceUnitOptions();
 }
+
+function renderResourceUnitOptions(selectedId = null) {
+  const select = $("resource-unit");
+  if (!select) return;
+  const previous = selectedId ?? select.value;
+  const subject = managedSubjects.find((item) => item.id === $("resource-subject").value && item.active);
+  select.replaceChildren();
+  const noUnit = document.createElement("option");
+  noUnit.value = "";
+  noUnit.textContent = "بدون وحدة (مورد عام للمادة)";
+  select.appendChild(noUnit);
+  if (!subject) {
+    select.disabled = true;
+    select.value = "";
+    return;
+  }
+  select.disabled = false;
+  const activeBranchIds = subject.branchIds.filter((id) => managedBranches.some((branch) => branch.id === id && branch.active));
+  const availableUnits = managedUnits.filter((unit) =>
+    unit.active && unit.subjectId === subject.id && unit.branchIds.some((id) => activeBranchIds.includes(id))
+  );
+  availableUnits.forEach((unit) => {
+    const option = document.createElement("option");
+    option.value = unit.id;
+    option.textContent = unit.name;
+    select.appendChild(option);
+  });
+  if (previous && !Array.from(select.options).some((option) => option.value === previous)) {
+    const preserved = document.createElement("option");
+    preserved.value = previous;
+    preserved.textContent = managedUnitsLoaded
+      ? "الوحدة المرتبطة الحالية غير نشطة أو غير متاحة"
+      : "تعذّر تحميل الوحدات، ستُحفظ الوحدة الحالية كما هي";
+    select.appendChild(preserved);
+  }
+  if (previous && Array.from(select.options).some((option) => option.value === previous)) select.value = previous;
+  else select.value = "";
+}
+$("resource-subject").addEventListener("change", () => renderResourceUnitOptions(""));
 
 function renderManagedResources() {
   $("resource-total").textContent = String(managedResources.length);
@@ -651,10 +719,12 @@ function renderManagedResources() {
     title.className = "manager-row-title";
     title.textContent = resource.title;
     const subject = managedSubjects.find((item) => item.id === resource.subjectId);
+    const unit = managedUnits.find((item) => item.id === resource.unitId);
     const meta = document.createElement("span");
     meta.className = "manager-row-meta";
-    meta.textContent = (subject?.name || resource.subjectName || "مادة غير معروفة") + " · " +
-      (resourceTypeNames[resource.type] || resource.type) + (resource.storageKey ? " · ملف مرفوع" : resource.externalUrl ? " · رابط خارجي" : "");
+    meta.textContent = (subject?.name || resource.subjectName || "مادة غير معروفة") +
+      (unit ? " · " + unit.name : "") + " · " + (resourceTypeNames[resource.type] || resource.type) +
+      (resource.storageKey ? " · ملف مرفوع" : resource.externalUrl ? " · رابط خارجي" : "");
     main.append(title, meta);
     const status = document.createElement("span");
     status.className = "manager-status" + (resource.status === "published" ? "" : " inactive");
@@ -689,6 +759,7 @@ function beginResourceEdit(resource) {
   $("resource-description").value = resource.description;
   $("resource-type").value = resource.type in resourceTypeNames ? resource.type : "link";
   renderResourceSubjectOptions(resource.subjectId);
+  renderResourceUnitOptions(resource.unitId);
   $("resource-source-mode").value = resource.storageKey ? "upload" : "link";
   $("resource-url").value = resource.externalUrl;
   $("resource-file").value = "";
@@ -711,6 +782,7 @@ function resetResourceForm() {
   $("resource-submit").textContent = "إضافة للمراجعة";
   $("resource-cancel").hidden = true;
   renderResourceSubjectOptions("");
+  renderResourceUnitOptions("");
 }
 
 async function deleteResource(resource) {
@@ -849,7 +921,7 @@ $("resource-form").addEventListener("submit", async (event) => {
 
     const payload = {
       title, description, type, branchIds: activeBranchIds,
-      subjectId: subject.id, subjectName: subject.name, keywords: [],
+      subjectId: subject.id, subjectName: subject.name, unitId: $("resource-unit").value || "", keywords: [],
       sourceName: mode === "upload" ? "ملف مرفوع" : "رابط خارجي",
       sourceUrl: sourceUrl, externalUrl: externalUrl, storageKey: storageKey,
       status: "pending_review", updatedAt: serverTimestamp(),
